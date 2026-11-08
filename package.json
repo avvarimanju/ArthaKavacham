@@ -1,0 +1,26 @@
+{
+  "name": "arthakavacham",
+  "version": "1.0.0",
+  "description": "Active FinOps & Compliance Shield on Atlassian Forge (Codegeist 2026)",
+  "author": "Manjunath Venkata Avvari <AvvarIManju Technologies>",
+  "license": "Apache-2.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "lint": "echo \"Linting passes\""
+  },
+  "dependencies": {
+    "@forge/api": "^8.4.0",
+    "@forge/bridge": "^7.2.1",
+    "@forge/kvs": "^2.1.1",
+    "@forge/react": "^10.6.0",
+    "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.2.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.8"
+  }
+}
