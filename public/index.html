@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ArthaKavacham — Active FinOps & Compliance Shield</title>
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/2092/2092663.png" type="image/png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: rgba(22, 30, 46, 0.7);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --primary: #38bdf8;
+      --accent: #6366f1;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --success: #10b981;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, var(--bg) 70%);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      line-height: 1.6;
+      padding: 2rem 1rem;
+    }
+    .container { max-width: 1100px; margin: 0 auto; }
+    header { text-align: center; margin-bottom: 3rem; }
+    .badge {
+      display: inline-block;
+      padding: 0.35rem 0.9rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #a5b4fc;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      font-size: 2.8rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #ffffff 40%, var(--primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.75rem;
+    }
+    p.subtitle {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      max-width: 700px;
+      margin: 0 auto 1.5rem;
+    }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 1.75rem;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    }
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.9rem;
+    }
+    .metric-row:last-child { border-bottom: none; }
+    .bar-bg {
+      background: rgba(255, 255, 255, 0.08);
+      height: 8px;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 0.3rem;
+      position: relative;
+    }
+    .bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+    .fill-danger { background: linear-gradient(90deg, #f87171, var(--danger)); }
+    .fill-warning { background: linear-gradient(90deg, #fbbf24, var(--warning)); }
+    .fill-success { background: linear-gradient(90deg, #34d399, var(--success)); }
+    .status-pill {
+      font-size: 0.75rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+    .status-blocked { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); }
+    .status-allowed { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4); }
+    .formula-box {
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 1rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 0.85rem;
+      margin: 1rem 0;
+      color: #38bdf8;
+    }
+    .btn {
+      display: inline-block;
+      padding: 0.6rem 1.2rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+    }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), #4f46e5); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-outline { background: transparent; border: 1px solid rgba(255, 255, 255, 0.2); color: var(--text); }
+    .btn-outline:hover { background: rgba(255, 255, 255, 0.05); }
+    footer { text-align: center; margin-top: 3rem; color: var(--text-muted); font-size: 0.85rem; }
+    a { color: var(--primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="badge">Codegeist 2026 • Atlassian Forge</div>
+      <h1>🛡️ ArthaKavacham</h1>
+      <p class="subtitle">Active FinOps & Regulatory Compliance Shield embedded across Jira Cloud, Bitbucket, Confluence, and Local IDEs via Model Context Protocol (MCP).</p>
+      <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+        <a class="btn btn-primary" href="https://github.com/avvarimanju/ArthaKavacham" target="_blank">GitHub Repository</a>
+        <a class="btn btn-outline" href="https://github.com/avvarimanju/ArthaKavacham/tree/prod" target="_blank">Prod Branch</a>
+        <a class="btn btn-outline" href="https://github.com/avvarimanju/ArthaKavacham/tree/dev" target="_blank">Dev Branch</a>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- Live Gate Status Card -->
+      <div class="card">
+        <div class="card-title">
+          <span>Active Transition Gate</span>
+          <span class="status-pill status-blocked" id="gate-status">BLOCKED (B=1.11)</span>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+          Jira issue <strong style="color:#fff;">PROJ-42</strong> transition to <em>Ready for Release</em> is intercepted by <code>jira:workflowValidator</code>.
+        </p>
+        <div class="formula-box">
+          B = max(U_i + ΔU_i * λ_i) / (Q_i * τ_i)<br>
+          B_turso = 943,500,000 / 850,000,000 = 1.11<br>
+          C = I_comp * max(0, 1 - B) = 0.00
+        </div>
+        <button class="btn btn-primary" style="width: 100%;" onclick="toggleRemediation()">
+          Simulate @ArthaKavacham Remediation
+        </button>
+      </div>
+
+      <!-- Cloud Telemetry Card -->
+      <div class="card">
+        <div class="card-title">
+          <span>Cloud Telemetry Matrix</span>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Judge Demo Seeder</span>
+        </div>
+        
+        <div class="metric-row">
+          <div>
+            <strong>Turso</strong>: Row Reads Monthly
+            <div class="bar-bg" style="width: 200px;"><div id="turso-bar" class="bar-fill fill-danger" style="width: 100%;"></div></div>
+          </div>
+          <span id="turso-val" style="color: var(--danger); font-weight: 700;">111% (Breach)</span>
+        </div>
+
+        <div class="metric-row">
+          <div>
+            <strong>Vercel</strong>: CPU Execution (82.5 / 100 Hrs)
+            <div class="bar-bg" style="width: 200px;"><div class="bar-fill fill-warning" style="width: 82.5%;"></div></div>
+          </div>
+          <span style="color: var(--warning); font-weight: 700;">82.5%</span>
+        </div>
+
+        <div class="metric-row">
+          <div>
+            <strong>Supabase</strong>: Postgres Storage (410 / 500 MB)
+            <div class="bar-bg" style="width: 200px;"><div class="bar-fill fill-warning" style="width: 82%;"></div></div>
+          </div>
+          <span style="color: var(--warning); font-weight: 700;">82.0%</span>
+        </div>
+
+        <div class="metric-row">
+          <div>
+            <strong>Cloudflare</strong>: Workers (7.8M / 10M Reqs)
+            <div class="bar-bg" style="width: 200px;"><div class="bar-fill fill-success" style="width: 78%;"></div></div>
+          </div>
+          <span style="color: var(--success); font-weight: 700;">78.0%</span>
+        </div>
+      </div>
+
+      <!-- Ecosystem Integration Card -->
+      <div class="card">
+        <div class="card-title">
+          <span>Atlassian Ecosystem Modules</span>
+          <span class="status-pill status-allowed">100% Native Forge</span>
+        </div>
+        <ul style="list-style: none; font-size: 0.9rem;">
+          <li style="padding: 0.4rem 0;">⚡ <code>jira:workflowValidator</code> — Sub-250ms deterministic gate</li>
+          <li style="padding: 0.4rem 0;">📊 <code>jira:issuePanel</code> — Live UI Kit 2 FinOps Scorecard</li>
+          <li style="padding: 0.4rem 0;">🔒 <code>bitbucket:mergeCheck</code> — PR merge ceiling check</li>
+          <li style="padding: 0.4rem 0;">📜 <code>confluence:macro</code> — ADR quota policy macro</li>
+          <li style="padding: 0.4rem 0;">🤖 <code>rovo:agent</code> — Assignable @ArthaKavacham Guardian</li>
+          <li style="padding: 0.4rem 0;">🌐 <code>webtrigger</code> — Atlassian MCP JSON-RPC 2.0 Server</li>
+        </ul>
+      </div>
+    </div>
+
+    <footer>
+      <p>ArthaKavacham by <strong>AvvarIManju Technologies</strong> • Architect: Manjunath Venkata Avvari</p>
+      <p style="margin-top: 0.25rem;">Built with Atlassian Forge Node 20 • Hosted on Vercel (Production branch: <code>prod</code>)</p>
+    </footer>
+  </div>
+
+  <script>
+    let remediated = false;
+    function toggleRemediation() {
+      remediated = !remediated;
+      const gateStatus = document.getElementById('gate-status');
+      const tursoBar = document.getElementById('turso-bar');
+      const tursoVal = document.getElementById('turso-val');
+
+      if (remediated) {
+        gateStatus.className = 'status-pill status-allowed';
+        gateStatus.innerText = 'ALLOW (B=0.82)';
+        tursoBar.className = 'bar-fill fill-success';
+        tursoBar.style.width = '82%';
+        tursoVal.innerText = '82.0% (Passing)';
+        tursoVal.style.color = 'var(--success)';
+      } else {
+        gateStatus.className = 'status-pill status-blocked';
+        gateStatus.innerText = 'BLOCKED (B=1.11)';
+        tursoBar.className = 'bar-fill fill-danger';
+        tursoBar.style.width = '100%';
+        tursoVal.innerText = '111% (Breach)';
+        tursoVal.style.color = 'var(--danger)';
+      }
+    }
+  </script>
+</body>
+</html>

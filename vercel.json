@@ -1,0 +1,10 @@
+{
+  "name": "arthakavacham",
+  "cleanUrls": true,
+  "git": {
+    "deploymentEnabled": {
+      "prod": true,
+      "dev": false
+    }
+  }
+}
