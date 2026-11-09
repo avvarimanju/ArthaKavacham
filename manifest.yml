@@ -1,99 +1,55 @@
 modules:
   jira:workflowValidator:
-    - key: arthakavacham-quota-gate
-      function: jiraWorkflowValidator
-      name: ArthaKavacham Quota Gate
-      description: Deterministically validates cloud quota blast-radius before issue transition.
+  - key: arthakavacham-quota-gate
+    function: jiraWorkflowValidator
+    name: ArthaKavacham Quota Gate
+    description: Deterministically validates cloud quota blast-radius before issue
+      transition.
   jira:issuePanel:
-    - key: arthakavacham-finops-panel
-      function: issuePanelUI
-      title: ArthaKavacham FinOps Scorecard
-      icon: https://cdn-icons-png.flaticon.com/512/2092/2092663.png
+  - key: arthakavacham-finops-panel
+    title: ArthaKavacham FinOps Scorecard
+    icon: https://cdn-icons-png.flaticon.com/512/2092/2092663.png
+    resource: scorecard
+    render: native
+    resolver:
+      function: scorecardResolver
   bitbucket:mergeCheck:
-    - key: arthakavacham-pr-merge-gate
-      function: bitbucketMergeCheck
-      name: ArthaKavacham PR FinOps Gate
-      description: Intercepts PR merges exceeding cloud resource ceilings.
-  confluence:macro:
-    - key: arthakavacham-adr-policy-macro
-      function: adrMacroUI
-      title: ArthaKavacham ADR Quota Policy
-      description: Embeds live quota and compliance specifications inside Confluence ADRs.
+  - key: arthakavacham-pr-merge-gate
+    function: bitbucketMergeCheck
+    name: ArthaKavacham PR FinOps Gate
+    description: Intercepts PR merges exceeding cloud resource ceilings.
+    triggers:
+    - on-merge
+    - on-code-pushed
   rovo:agent:
-    - key: arthakavacham-agent
-      name: ArthaKavacham
-      description: Autonomous FinOps & Compliance Shield Agent
-      prompt: >
-        You are @ArthaKavacham, an autonomous FinOps and regulatory compliance guardian.
-        You monitor Vercel, Supabase, Turso, and Cloudflare quota blast-radius, enforce ADR policy
-        compliance, and protect teams from budget overruns and unauthorized cloud dependencies.
-      actions:
-        - evaluate-issue-blast-radius
-        - apply-quota-remediation
-        - create-optimization-subtask
-  rovo:action:
-    - key: evaluate-issue-blast-radius
-      function: rovoActionEvaluateBlastRadius
-      actionType: READ_ONLY
-      name: Evaluate Issue Blast Radius
-      description: Computes current and projected quota consumption for an issue.
-      inputs:
-        issueKey:
-          type: string
-          description: Jira issue key to evaluate
-          required: true
-        projectedRowReadsDelta:
-          type: number
-          description: Optional explicit override for projected monthly database row reads delta.
-          required: false
-    - key: apply-quota-remediation
-      function: rovoActionApplyRemediation
-      actionType: WRITE
-      name: Apply Quota Remediation
-      description: Proposes or applies quota ceiling overrides or architectural fixes.
-      inputs:
-        issueKey:
-          type: string
-          description: Jira issue key
-          required: true
-        remediationStrategy:
-          type: string
-          description: Remediation strategy code (e.g., edge-cache-cloudflare, batch-libsql-turso, pool-supabase)
-          required: true
-    - key: create-optimization-subtask
-      function: rovoActionCreateSubtask
-      actionType: WRITE
-      name: Create Optimization Subtask
-      description: Automatically generates a Jira subtask with step-by-step query and caching optimization guidance.
-      inputs:
-        parentIssueKey:
-          type: string
-          description: Parent issue key
-          required: true
-        summary:
-          type: string
-          description: Subtask summary title
-          required: true
-  webtrigger:
-    - key: arthakavacham-mcp-endpoint
-      function: mcpWebtriggerHandler
-  scheduledTrigger:
-    - key: arthakavacham-telemetry-sync
-      function: telemetrySyncHandler
-      interval: hour
+  - key: arthakavacham-agent
+    name: ArthaKavacham
+    description: Autonomous FinOps & Compliance Shield Agent
+    prompt: 'You are @ArthaKavacham, an autonomous FinOps and regulatory compliance
+      guardian. You monitor Vercel, Supabase, Turso, and Cloudflare quota blast-radius,
+      enforce ADR policy compliance, and protect teams from budget overruns and unauthorized
+      cloud dependencies.
 
-function:
+      '
+    actions:
+    - evaluate-issue-blast-radius
+    - apply-quota-remediation
+    - create-optimization-subtask
+  webtrigger:
+  - key: arthakavacham-mcp-endpoint
+    function: mcpWebtriggerHandler
+  scheduledTrigger:
+  - key: arthakavacham-telemetry-sync
+    function: telemetrySyncHandler
+    interval: hour
+  function:
   - key: jiraWorkflowValidator
     handler: index.validateJiraTransition
-  - key: issuePanelUI
-    handler: index.renderIssuePanel
   - key: bitbucketMergeCheck
     handler: index.validateBitbucketMerge
-  - key: adrMacroUI
-    handler: index.renderAdrMacro
-  - key: rovoActionEvaluateBlastRadius
+  - key: rovoEvaluate
     handler: index.handleEvaluateBlastRadius
-  - key: rovoActionApplyRemediation
+  - key: rovoRemediate
     handler: index.handleApplyRemediation
   - key: rovoActionCreateSubtask
     handler: index.handleCreateOptimizationSubtask
@@ -101,25 +57,91 @@ function:
     handler: index.handleMcpEndpoint
   - key: telemetrySyncHandler
     handler: index.handleTelemetrySync
-
+  - key: scorecardResolver
+    handler: ui/resolver.handler
+  action:
+  - key: evaluate-issue-blast-radius
+    function: rovoEvaluate
+    name: Evaluate Issue Blast Radius
+    description: Computes current and projected quota consumption for an issue.
+    inputs:
+      issueKey:
+        type: string
+        description: Jira issue key to evaluate
+        required: true
+        title: issueKey
+      projectedRowReadsDelta:
+        type: number
+        description: Optional explicit override for projected monthly database row
+          reads delta.
+        required: false
+        title: projectedRowReadsDelta
+    actionVerb: GET
+  - key: apply-quota-remediation
+    function: rovoRemediate
+    name: Apply Quota Remediation
+    description: Verify measured architectural remediation without quota overrides.
+    inputs:
+      issueKey:
+        type: string
+        description: Jira issue key
+        required: true
+        title: issueKey
+      remediationStrategy:
+        type: string
+        description: Remediation strategy code (e.g., edge-cache-cloudflare, batch-libsql-turso,
+          pool-supabase)
+        required: true
+        title: remediationStrategy
+    actionVerb: UPDATE
+  - key: create-optimization-subtask
+    function: rovoActionCreateSubtask
+    name: Create Optimization Subtask
+    description: Automatically generates a Jira subtask with step-by-step query and
+      caching optimization guidance.
+    inputs:
+      parentIssueKey:
+        type: string
+        description: Parent issue key
+        required: true
+        title: parentIssueKey
+      summary:
+        type: string
+        description: Subtask summary title
+        required: true
+        title: summary
+    actionVerb: CREATE
+  macro:
+  - key: arthakavacham-adr-policy-macro
+    title: ArthaKavacham ADR Quota Policy
+    description: Embeds live quota and compliance specifications inside Confluence
+      ADRs.
+    resource: scorecard
+    render: native
+    resolver:
+      function: scorecardResolver
 permissions:
   scopes:
-    - storage:app
-    - read:jira-work
-    - write:jira-work
-    - read:jira-user
-    - read:confluence-content.all
-    - read:confluence-content.summary
-    - read:pullrequest:bitbucket
+  - storage:app
+  - read:jira-work
+  - write:jira-work
+  - read:jira-user
+  - read:confluence-content.all
+  - read:confluence-content.summary
+  - read:pullrequest:bitbucket
+  - read:graph:user:atlassian
+  - read:graph:team:atlassian
   external:
     fetch:
       backend:
-        - 'https://api.vercel.com'
-        - 'https://api.supabase.com'
-        - 'https://api.turso.tech'
-        - 'https://api.cloudflare.com'
-
+      - address: https://api.vercel.com
+      - address: https://api.supabase.com
+      - address: https://api.turso.tech
+      - address: https://api.cloudflare.com
 app:
   id: ari:cloud:ecosystem::app/c68e1a44-8854-4a25-83e8-54c7d0d6e812
   runtime:
     name: nodejs20.x
+resources:
+- key: scorecard
+  path: src/ui/issuePanel.tsx

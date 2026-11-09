@@ -154,7 +154,7 @@
           <span class="status-pill status-blocked" id="gate-status">BLOCKED (B=1.11)</span>
         </div>
         <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
-          Jira issue <strong style="color:#fff;">PROJ-42</strong> transition to <em>Ready for Release</em> is intercepted by <code>jira:workflowValidator</code>.
+          Demo simulation only; no Jira transition is performed. Jira issue <strong style="color:#fff;">PROJ-42</strong> transition to <em>Ready for Release</em> is intercepted by <code>jira:workflowValidator</code>.
         </p>
         <div class="formula-box">
           B = max(U_i + ΔU_i * λ_i) / (Q_i * τ_i)<br>
@@ -183,26 +183,26 @@
 
         <div class="metric-row">
           <div>
-            <strong>Vercel</strong>: CPU Execution (82.5 / 100 Hrs)
-            <div class="bar-bg" style="width: 200px;"><div class="bar-fill fill-warning" style="width: 82.5%;"></div></div>
+            <strong>Vercel</strong>: CPU Execution (60 / 100 Hrs)
+            <div class="bar-bg" style="width: 200px;"><div class="bar-fill fill-warning" style="width: 60%;"></div></div>
           </div>
-          <span style="color: var(--warning); font-weight: 700;">82.5%</span>
+          <span style="color: var(--warning); font-weight: 700;">60.0%</span>
         </div>
 
         <div class="metric-row">
           <div>
-            <strong>Supabase</strong>: Postgres Storage (410 / 500 MB)
-            <div class="bar-bg" style="width: 200px;"><div class="bar-fill fill-warning" style="width: 82%;"></div></div>
+            <strong>Supabase</strong>: Postgres Storage (300 / 500 MB)
+            <div class="bar-bg" style="width: 200px;"><div class="bar-fill fill-warning" style="width: 60%;"></div></div>
           </div>
-          <span style="color: var(--warning); font-weight: 700;">82.0%</span>
+          <span style="color: var(--warning); font-weight: 700;">60.0%</span>
         </div>
 
         <div class="metric-row">
           <div>
-            <strong>Cloudflare</strong>: Workers (7.8M / 10M Reqs)
-            <div class="bar-bg" style="width: 200px;"><div class="bar-fill fill-success" style="width: 78%;"></div></div>
+            <strong>Cloudflare</strong>: Workers (6M / 10M Reqs)
+            <div class="bar-bg" style="width: 200px;"><div class="bar-fill fill-success" style="width: 60%;"></div></div>
           </div>
-          <span style="color: var(--success); font-weight: 700;">78.0%</span>
+          <span style="color: var(--success); font-weight: 700;">60.0%</span>
         </div>
       </div>
 
@@ -239,10 +239,10 @@
 
       if (remediated) {
         gateStatus.className = 'status-pill status-allowed';
-        gateStatus.innerText = 'ALLOW (B=0.82)';
+        gateStatus.innerText = 'ALLOW (B=0.9875)';
         tursoBar.className = 'bar-fill fill-success';
-        tursoBar.style.width = '82%';
-        tursoVal.innerText = '82.0% (Passing)';
+        tursoBar.style.width = '83.38%';
+        tursoVal.innerText = '83.38% (Turso passing)';
         tursoVal.style.color = 'var(--success)';
       } else {
         gateStatus.className = 'status-pill status-blocked';

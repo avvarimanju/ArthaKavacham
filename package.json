@@ -7,13 +7,18 @@
   "private": true,
   "scripts": {
     "build": "tsc",
-    "lint": "echo \"Linting passes\""
+    "lint": "tsc --noEmit && node scripts/checkStandards.cjs",
+    "test": "vitest run",
+    "demo": "tsx scripts/simulateJudgeDemo.ts",
+    "typecheck": "tsc -p tsconfig.tests.json",
+    "validate:manifest": "node scripts/validateManifest.cjs"
   },
   "dependencies": {
     "@forge/api": "^8.4.0",
     "@forge/bridge": "^7.2.1",
     "@forge/kvs": "^2.1.1",
     "@forge/react": "^10.6.0",
+    "@forge/resolver": "^2.0.2",
     "react": "^18.2.0"
   },
   "devDependencies": {
@@ -21,6 +26,7 @@
     "@types/react": "^18.2.0",
     "tsx": "^4.19.2",
     "typescript": "^5.6.2",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "@forge/manifest": "^13.8.0"
   }
 }

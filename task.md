@@ -1,18 +1,21 @@
-# Tasks: Phase 2 Test Harness, Teamwork Graph & Judge Simulation
+# Phase 2 implementation status
 
-- [ ] Phase 2 Test Harness & Simulation Setup <!-- id: 16 -->
-    - [ ] Install `vitest` and `tsx` as devDependencies <!-- id: 17 -->
-    - [ ] Create `vitest.config.ts` <!-- id: 18 -->
-- [ ] Atlassian Teamwork Graph Connector <!-- id: 19 -->
-    - [ ] Implement `src/graph/teamworkGraph.ts` (Entity & edge mapping for `CloudQuotaNode`, `ServiceTelemetryNode`, Jira Issues, Confluence ADRs, and owning squads) <!-- id: 20 -->
-- [ ] Vitest Unit Test Suite <!-- id: 21 -->
-    - [ ] Create `tests/quotaEngine.test.ts` (Verify Blast-Radius B = 1.11, Confidence C = 0.0, and post-remediation B <= 1.0) <!-- id: 22 -->
-    - [ ] Create `tests/validators.test.ts` (Test Jira transition validator & Bitbucket merge gate) <!-- id: 23 -->
-    - [ ] Create `tests/rovoActions.test.ts` (Test Rovo actions contracts from SKILLS.md) <!-- id: 24 -->
-    - [ ] Create `tests/mcpServer.test.ts` (Test MCP JSON-RPC 2.0 initialize, tools/list, and tools/call) <!-- id: 25 -->
-- [ ] Zero-Credential Judge Simulation CLI <!-- id: 26 -->
-    - [ ] Create `scripts/simulateJudgeDemo.ts` (5-step end-to-end simulation of breach, block, Rovo remediation, and transition release) <!-- id: 27 -->
-- [ ] Verification & Execution <!-- id: 28 -->
-    - [ ] Run `npm run build` (`tsc`) <!-- id: 29 -->
-    - [ ] Run `npx vitest run` <!-- id: 30 -->
-    - [ ] Run `npx tsx scripts/simulateJudgeDemo.ts` <!-- id: 31 -->
+- [x] Vitest/tsx dependencies, configuration and scripts
+- [x] Full precision quota decisions and invalid-input validation
+- [x] Healthy, breach and compliance-failure fixtures
+- [x] Shared Forge KVS and isolated memory snapshots
+- [x] Truthful remediation with measured evidence requirements
+- [x] Jira label updates, ADF comments and actual subtask API creation
+- [x] Approved ADR and policy macro verification
+- [x] Teamwork Graph membership query and local relationship models
+- [x] Cached PR binding and invalidation on code changes
+- [x] Backend resolver for panel/macro cached evaluation
+- [x] Unit/integration tests with mocked Atlassian APIs
+- [x] Isolated judge simulation CLI
+- [x] Local build, type checking, standards and manifest validation
+- [ ] Wire live provider collectors to the measured ingestion boundary
+- [ ] Configure tenant issue policies, owner mappings and ADR view mappings
+- [ ] Validate installed-site APIs, Forge UI and gate latency
+- [ ] Ingest custom quota entities into Atlassian Teamwork Graph if required by submission scope
+
+See docs/phase2.md for activation requirements and limitations.

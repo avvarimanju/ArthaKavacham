@@ -7,7 +7,7 @@ export function getVercelDemoMetrics(isBreach: boolean): QuotaMetric[] {
       metricKey: 'serverless_cpu_gb_hours',
       metricName: 'Serverless CPU Execution',
       unit: 'GB-Hours',
-      currentUsage: 82.5,
+      currentUsage: 60,
       quotaLimit: 100.0,
       projectedDelta: isBreach ? 18.0 : 3.0,
       safetyCeilingRatio: 0.8,
@@ -34,7 +34,7 @@ export function getSupabaseDemoMetrics(isBreach: boolean): QuotaMetric[] {
       metricKey: 'postgres_storage_mb',
       metricName: 'Database Disk Storage',
       unit: 'MB',
-      currentUsage: 410,
+      currentUsage: 300,
       quotaLimit: 500,
       projectedDelta: isBreach ? 95 : 12,
       safetyCeilingRatio: 0.8,
@@ -89,7 +89,7 @@ export function getCloudflareDemoMetrics(isBreach: boolean): QuotaMetric[] {
       metricKey: 'workers_requests',
       metricName: 'Workers Requests',
       unit: 'Requests',
-      currentUsage: 7800000,
+      currentUsage: 6000000,
       quotaLimit: 10000000,
       projectedDelta: isBreach ? 1500000 : 250000,
       safetyCeilingRatio: 0.8,
@@ -128,10 +128,10 @@ export async function fetchCloudTelemetry(
   const allMetrics = getJudgeDemoMetrics(scenario);
   const providers: CloudProviderId[] = ['turso', 'vercel', 'supabase', 'cloudflare'];
 
-  return providers.map((provider) => {
-    const providerMetrics = allMetrics.filter((m) => m.provider === provider);
+  return providers.map((provider: CloudProviderId): CloudProviderTelemetry => {
+    const providerMetrics = allMetrics.filter((m: QuotaMetric): boolean => m.provider === provider);
     const hasBreach = providerMetrics.some(
-      (m) => (m.currentUsage + m.projectedDelta * m.sensitivityMultiplier) > (m.quotaLimit * m.safetyCeilingRatio)
+      (m: QuotaMetric): boolean => (m.currentUsage + m.projectedDelta * m.sensitivityMultiplier) > (m.quotaLimit * m.safetyCeilingRatio)
     );
 
     return {

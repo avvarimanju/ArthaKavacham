@@ -1,5 +1,5 @@
 // Vercel Serverless Function: Atlassian MCP Endpoint (JSON-RPC 2.0)
-const { processRpc } = require('../dist/mcp/mcpServer');
+const { processRpc, isMcpAuthorized } = require('../dist/mcp/mcpServer');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
@@ -21,9 +21,12 @@ module.exports = async function handler(req, res) {
     });
   }
 
+  if (!isMcpAuthorized(req.headers)) return res.status(401).json({ error: 'Unauthorized' });
+
   try {
     const payload = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     const response = await processRpc(payload || {});
+    if (response === null) return res.status(204).end();
     return res.status(200).json(response);
   } catch (error) {
     return res.status(400).json({

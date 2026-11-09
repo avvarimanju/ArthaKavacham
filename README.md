@@ -8,6 +8,10 @@
 [![TypeScript 5.6](https://img.shields.io/badge/Language-TypeScript%205.6-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
+## Current implementation status
+
+Phase 2 includes deterministic boundary fixes, shared KVS snapshots, measured-remediation verification, Jira/Confluence adapters, Teamwork Graph membership lookup, automated tests and an isolated judge CLI. Run `npm run demo` for the BLOCK → remediation simulation → ALLOW flow. See [setup, limitations and verification](docs/phase2.md) before activating integrations. Live provider collectors and installed-site validation remain outstanding; the architecture below describes the intended full system.
+
 ---
 
 ## 📌 Executive Summary
@@ -125,9 +129,9 @@ flowchart TB
 To allow hackathon judges and evaluators to test **ArthaKavacham** instantly without providing live third-party cloud API credentials, the project includes a deterministic **Judge Demo Seeder** in `src/telemetry/cloudProviders.ts`:
 
 * **Turso:** Current: 650M reads / 1B limit ($\tau = 0.85$, SafeMax = 850M). Projected Delta = 266.8M with $\lambda = 1.1 \rightarrow$ **$\mathcal{B} = 1.11$ (111% breach!)**.
-* **Vercel:** Current: 82.5 GB-Hrs / 100 limit ($\tau = 0.80$, SafeMax = 80 GB-Hrs) $\rightarrow$ Active warning.
-* **Supabase:** Current: 410 MB / 500 MB limit ($\tau = 0.80$, SafeMax = 400 MB) $\rightarrow$ Active warning.
-* **Cloudflare:** Current: 7.8M / 10M limit ($\tau = 0.80$, SafeMax = 8M) $\rightarrow$ Healthy.
+* **Vercel:** Current: 60 GB-Hrs / 100 limit ($\tau = 0.80$, SafeMax = 80 GB-Hrs) $\rightarrow$ Active warning.
+* **Supabase:** Current: 300 MB / 500 MB limit ($\tau = 0.80$, SafeMax = 400 MB) $\rightarrow$ Active warning.
+* **Cloudflare:** Current: 6M / 10M limit ($\tau = 0.80$, SafeMax = 8M) $\rightarrow$ Healthy.
 
 ---
 

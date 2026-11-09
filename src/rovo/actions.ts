@@ -1,91 +1,66 @@
 import { evaluateQuotaGate } from '../math/quotaEngine';
-import { getJudgeDemoMetrics } from '../telemetry/cloudProviders';
-import { RovoActionResult, RovoEvaluationPayload } from '../types';
-
-interface ActionPayload {
-  inputs?: {
-    issueKey?: string;
-    projectedRowReadsDelta?: number;
-    parentIssueKey?: string;
-    remediationStrategy?: string;
-    summary?: string;
-  };
+import { RovoActionResult, RovoActionInput, EvaluationResult, QuotaMetric } from '../types';
+import { SnapshotStore, forgeStore, readSnapshot, QuotaSnapshot } from '../state/snapshots';
+import { AtlassianClient, createAtlassianClient } from '../atlassian/client';
+import { syncIssue } from '../atlassian/context';
+export interface ActionPayload { inputs?: RovoActionInput }
+export interface ActionDependencies { store: SnapshotStore; client?: AtlassianClient }
+const STRATEGIES: string[] = ['edge-cache-cloudflare', 'batch-libsql-turso', 'pool-supabase'];
+function required(value: string | undefined, name: string): string {
+  if (!value?.trim()) throw new Error(`${name} is required`);
+  return value;
 }
-
-export async function handleEvaluateBlastRadius(
-  event: ActionPayload
-): Promise<RovoActionResult> {
-  const issueKey = event.inputs?.issueKey || 'PROJ-42';
-  const deltaOverride = event.inputs?.projectedRowReadsDelta;
-  const metrics = getJudgeDemoMetrics('BREACH', deltaOverride);
-  const evaluation = evaluateQuotaGate(metrics, true);
-
-  const data: RovoEvaluationPayload = {
-    issueKey,
-    allowed: evaluation.decision === 'ALLOW',
-    blastRadiusScore: evaluation.blastRadius,
-    confidenceIndex: evaluation.confidenceIndex,
-    compliancePassed: evaluation.complianceIndicator === 1,
-    breachingDimensions: evaluation.breachingDimensions,
-    verdictSummary: evaluation.verdictSummary,
-  };
-
-  return {
-    success: true,
-    message: `Blast-Radius evaluation completed for ${issueKey}.`,
-    data,
-  };
+export async function handleEvaluateBlastRadius(event: ActionPayload,
+  deps: ActionDependencies = { store: forgeStore }): Promise<RovoActionResult> {
+  const issueKey: string = required(event.inputs?.issueKey, 'issueKey');
+  const snapshot: QuotaSnapshot = await readSnapshot(issueKey, deps.store);
+  const delta: number | undefined = event.inputs?.projectedRowReadsDelta;
+  const metrics: QuotaMetric[] = snapshot.metrics.map((metric: QuotaMetric): QuotaMetric =>
+    delta !== undefined && metric.provider === 'turso' && metric.metricKey === 'row_reads_monthly'
+      ? { ...metric, projectedDelta: delta } : metric);
+  const result: EvaluationResult = evaluateQuotaGate(metrics, snapshot.context.compliant);
+  return { success: true, message: result.verdictSummary, data: { issueKey,
+    allowed: result.decision === 'ALLOW', blastRadiusScore: result.blastRadius,
+    confidenceIndex: result.confidenceIndex, compliancePassed: result.complianceIndicator === 1,
+    breachingDimensions: result.breachingDimensions, verdictSummary: result.verdictSummary } };
 }
-
-export async function handleApplyRemediation(
-  event: ActionPayload
-): Promise<RovoActionResult> {
-  const issueKey = event.inputs?.issueKey || 'PROJ-42';
-  const strategy = event.inputs?.remediationStrategy || 'edge-cache-cloudflare';
-
-  const baseMetrics = getJudgeDemoMetrics('BREACH');
-  const remediatedMetrics = baseMetrics.map((m) => ({
-    ...m,
-    projectedDelta: m.projectedDelta * 0.2, // 80% reduction via caching/batching
-  }));
-  const postEval = evaluateQuotaGate(remediatedMetrics, true);
-
-  return {
-    success: true,
-    message: `Applied remediation [${strategy}] to ${issueKey}. Issue is now unblocked.`,
-    data: {
-      issueKey,
-      strategyApplied: strategy,
-      labelsApplied: ['Quota-Remediated', 'FinOps-Approved'],
-      previousVerdict: 'BLOCKED (B=1.11)',
-      newVerdict: postEval.verdictSummary,
-      newBlastRadius: postEval.blastRadius,
-      confidenceIndex: postEval.confidenceIndex,
-    },
-  };
+export async function handleApplyRemediation(event: ActionPayload,
+  deps: ActionDependencies = { store: forgeStore }): Promise<RovoActionResult> {
+  const key: string = required(event.inputs?.issueKey, 'issueKey');
+  const strategy: string = required(event.inputs?.remediationStrategy, 'remediationStrategy');
+  if (!STRATEGIES.includes(strategy)) throw new Error('Unsupported remediation strategy');
+  const before: QuotaSnapshot = await readSnapshot(key, deps.store);
+  const client: AtlassianClient | undefined = before.source === 'measured' ? deps.client ?? await createAtlassianClient() : undefined;
+  const after: QuotaSnapshot = before.source === 'demo' ? remediateDemo(before, strategy)
+    : await syncIssue(key, client!, deps.store);
+  if (after.source === 'measured' && (!after.evidence?.reference || after.evidence.strategy !== strategy ||
+      Date.parse(after.capturedAt) <= Date.parse(before.capturedAt))) throw new Error('New measured remediation evidence is required');
+  await readSnapshot(key, { get: async (): Promise<QuotaSnapshot> => after, set: deps.store.set });
+  const result: EvaluationResult = evaluateQuotaGate(after.metrics, after.context.compliant);
+  const allowed: boolean = result.decision === 'ALLOW';
+  const labels: string[] = allowed ? ['Quota-Remediated', 'FinOps-Approved'] : ['Quota-Blocked', 'FinOps-Review-Required'];
+  if (client) {
+    await client.labels(key, labels);
+    await client.comment(key, `${strategy}: ${result.verdictSummary} ${result.breachingDimensions.join('; ')} Evidence: ${after.evidence?.reference}. Verify caching, batched reads and transaction pooling; refresh quota measurements and the linked ADR before retrying.`, after.context.ownerAccountId);
+  }
+  await deps.store.set(key, after);
+  return { success: allowed, message: `${after.source === 'demo' ? 'Demo simulation' : 'Measured verification'}: ${result.verdictSummary}`,
+    data: { issueKey: key, strategyApplied: strategy, labelsApplied: client ? labels : [],
+      decision: result.decision, newBlastRadius: result.blastRadius, confidenceIndex: result.confidenceIndex } };
 }
-
-export async function handleCreateOptimizationSubtask(
-  event: ActionPayload
-): Promise<RovoActionResult> {
-  const parentKey = event.inputs?.parentIssueKey || 'PROJ-42';
-  const summary = event.inputs?.summary || 'Implement Cloudflare KV caching & Turso batch queries';
-  const subtaskKey = `${parentKey}-FINOPS-1`;
-
-  return {
-    success: true,
-    message: `Created optimization subtask ${subtaskKey} under ${parentKey}.`,
-    data: {
-      subtaskKey,
-      parentKey,
-      summary,
-      status: 'To Do',
-      suggestedActions: [
-        'Deploy Cloudflare KV read-through cache for hot row queries',
-        'Batch Turso LibSQL transaction statements to reduce read units',
-        'Enable Supabase connection pooling (PgBouncer mode)',
-        'Verify Confluence ADR quota ceiling compliance',
-      ],
-    },
-  };
+function remediateDemo(snapshot: QuotaSnapshot, strategy: string): QuotaSnapshot {
+  if (snapshot.evidence) return snapshot;
+  const provider: string = strategy === 'pool-supabase' ? 'supabase' : 'turso';
+  return { ...snapshot, evidence: { strategy, reference: 'judge-fixture-only' },
+    metrics: snapshot.metrics.map((metric: QuotaMetric): QuotaMetric => metric.provider === provider
+      ? { ...metric, projectedDelta: metric.projectedDelta * 0.2 } : metric) };
+}
+export async function handleCreateOptimizationSubtask(event: ActionPayload,
+  deps: ActionDependencies = { store: forgeStore }): Promise<RovoActionResult> {
+  const key: string = required(event.inputs?.parentIssueKey, 'parentIssueKey');
+  const summary: string = required(event.inputs?.summary, 'summary');
+  const client: AtlassianClient = deps.client ?? await createAtlassianClient();
+  const parent = await client.issue(key);
+  const subtaskKey: string = await client.subtask(parent, summary);
+  return { success: true, message: `Created ${subtaskKey}`, data: { subtaskKey, parentKey: key, summary } };
 }
