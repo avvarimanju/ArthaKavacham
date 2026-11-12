@@ -1,34 +1,51 @@
-# REQUIREMENTS.md — ArthaKavacham
-**Active FinOps & Compliance Shield on Atlassian Forge**
+# ArthaKavacham requirements
 
-* **Hackathon:** Codegeist 2026: Build with context. Ship with confidence.
-* **Primary Category:** Apps for Software Teams
-* **Bonus Prize Tracks Targeted:**
-  1. Best Agents — Rovo / Assignable Agents (`rovo:agent`, `rovo:action`)
-  2. Best Apps with Teamwork Graph Integration (`teamworkGraph:connector`)
-  3. Best App with Atlassian MCP (`mcp:server` / Forge Web Trigger MCP Endpoint)
-  4. Best Marketplace Published App
-* **Organization:** AvvarIManju Technologies
-* **Author:** Manjunath Venkata Avvari
-* **Runtime & Stack:** Atlassian Forge (Node.js 20.x, TypeScript, Forge UI Kit 2, Forge KVS Storage, Forge LLMs)
+Reviewed **12 November 2026**. Project: AvvarIManju Technologies. Author: Manjunath Venkata Avvari. See [status](docs/status.md) for delivered/verified scope.
 
----
+## Problem and objective
 
-## 1. Executive Summary & Problem Statement
+Teams track planned changes in Jira/Bitbucket and architecture decisions in Confluence, while cloud consumption sits elsewhere. ArthaKavacham aims to stop releases that exceed explicit resource safety ceilings or lack required architecture approval, before consumption becomes a problem.
 
-Modern software engineering teams build on elastic serverless and managed database tiers—including **Vercel** (CPU execution, edge invocations), **Supabase** (connection pools, egress), **Turso** (row reads, storage writes), and **Cloudflare** (Workers requests). While sprint planning, architectural specifications, and code reviews happen inside **Jira**, **Confluence**, and **Bitbucket**, live infrastructure consumption and regulatory guardrails live in isolated external silos.
+This is a quota/policy guardrail, not a billing forecast, financial guarantee, legal compliance certification or automatic infrastructure optimizer. The configured ADR convention is not a cryptographic signature or external approval workflow.
 
-Traditional FinOps tools are passive dashboards that alert teams *after* a quota is breached or a billing anomaly occurs. **ArthaKavacham** (*Artha* = Resource/Capital, *Kavacham* = Shield/Armor) shifts FinOps and compliance left by acting as an **active, deterministic pre-merge gatekeeper** built natively on **Atlassian Forge**.
+## Scope and acceptance
 
----
+| Requirement | Acceptance criterion | Current status |
+| --- | --- | --- |
+| Deterministic math | Full-precision B<=1 AND compliance for ALLOW; invalid inputs rejected | Implemented and locally tested |
+| Portal persistence | Scenarios/remediation survive reload in SQL storage | Live Turso and offline SQLite verified |
+| Live Turso monitoring | Actual usage separated from active-plan allowances and demo fixtures | Locally verified |
+| Demo flow | Healthy ALLOW, quota breach BLOCK, compliance failure BLOCK, simulated before/after comparison | Browser/API verified |
+| Jira gate | Installed transition blocks on unsafe/missing/stale evidence | Cached handler tested; installed-site acceptance pending |
+| Bitbucket gate | Current PR binding required; push invalidates prior evidence | Handler tested; Required setup and site verification pending |
+| ADR governance | Approved/current page with actual policy macro and configured issue property | Adapter tested; tenant configuration/site validation pending |
+| Rovo actions | Evaluate, verify newer measured remediation and explicitly create subtask | Implemented with mocked tests; live invocation pending |
+| Team ownership | Explicit owner or assignee fallback; query actual memberships | Implemented; live responses pending |
+| JSON-RPC tools | Read-only evaluation and provenance-aware cached snapshots | Local endpoint tested; deployed interoperability pending |
+| Synchronous timing | No external HTTP inside gates; under 250ms on installed site | Cache-only code and 200ms operation deadline; platform measurement pending |
 
-## 2. System Architecture & Atlassian Ecosystem Modules
+## Provider coverage
 
-### 2.1 Atlassian Forge Manifest Modules (`manifest.yml`)
-| Module Type | Key / Identifier | Purpose in ArthaKavacham |
-| :--- | :--- | :--- |
-| `jira:workflowValidator` | `arthakavacham-quota-gate` | Synchronously intercepts Jira issue transitions (e.g., *In Progress* $\rightarrow$ *Ready for Release* / *Done*) and blocks the transition if $\mathcal{B} > 1.0$ or $\mathbb{I}_{\text{comp}} = 0$. |
-| `jira:issuePanel` | `arthakavacham-finops-panel` | Renders the live Forge UI Kit 2 FinOps & Compliance Scorecard inside every Jira issue. |
-| `bitbucket:mergeCheck` | `arthakavacham-pr-merge-gate` | Evaluates Pull Request diffs for unindexed queries, N+1 loops, or unapproved cloud dependencies and locks the Merge button on breach. |
-| `confluence:macro` | `arthakavacham-adr-policy-macro` | Embeds structured compliance & quota ceiling definitions inside Confluence Architecture Decision Records (ADRs). |
-| `rovo:agent` | `arthakavacham-agent` | Assignable Rovo FinOps & Compliance Agent (`@ArthaKavacham`) that traverses
+Turso stores portal application data and supplies real organization read/storage observations. Supabase and Cloudflare store no ArthaKavacham data. Vercel hosting configuration is not evidence of an active deployment.
+
+All four providers have demo dimensions. Turso collection is implemented/verified locally. Optional Forge Supabase database-size collection is implemented but inactive locally and unverified live. Vercel/Cloudflare collectors and Supabase connection collection are outstanding.
+
+The current measured ingestion contract requires all four provider identities. It must block missing required measurements; a configurable provider subset is future work, not an implicit change caused by using Turso for storage.
+
+## Deterministic policy
+
+B_i=(U_i + delta_i × lambda_i)/(Q_i × tau_i), B=max(B_i), C=I_comp × max(0,1-B). ALLOW requires B<=1 and I_comp=1. C is headroom, not confidence probability.
+
+Projected deltas must be explicit trusted inputs, not guessed from issue text. Allowances must come from verified plan/policy data, not example constants. Measured data older than two hours, malformed/future timestamps and incomplete snapshots block. A valid ADR does not waive a breached quota.
+
+Production remediation requires newer measurements, supported strategy and matching evidence; demonstration reductions cannot satisfy it. Engineers implement architecture changes separately.
+
+## Submission targets and deferred capabilities
+
+Project ambitions include software-team workflows, Rovo, MCP-style tools, Teamwork Graph and Marketplace readiness. Current contest categories, eligibility and publication requirements must be checked independently; this document does not assert them.
+
+Not implemented/verified: automatic PR/LLM delta extraction, custom quota entity graph ingestion, infrastructure deployment, automatic squad-lead discovery, installed-site timing, public production readiness and generalized regulatory certification.
+
+## Remaining acceptance work
+
+Provision tenant policies/owners/ADR mappings and measured telemetry; bind PRs; install/update Forge; verify real Jira/Confluence operations, Rovo, Graph, scorecards and blocking; measure latency; review dependencies and licensing before publishing. See [tasks](task.md) and [activation](docs/phase2.md).

@@ -1,6 +1,7 @@
 export type CloudProviderId = 'vercel' | 'supabase' | 'turso' | 'cloudflare';
 
 export type GateDecision = 'ALLOW' | 'BLOCK';
+export type DemoScenario = 'BREACH' | 'HEALTHY' | 'COMPLIANCE_FAIL';
 
 export interface QuotaMetric {
   provider: CloudProviderId;

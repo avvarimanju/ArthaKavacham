@@ -1,160 +1,73 @@
-# TECHNICAL_STACK.md — ArthaKavacham
-**Complete Technology Stack, Dependencies, Scopes & Environment Blueprint**
+# ArthaKavacham technical stack
 
-* **Project:** ArthaKavacham (Active FinOps & Compliance Shield on Atlassian Forge)
-* **Hackathon:** Codegeist 2026: Build with context. Ship with confidence.
-* **Organization:** AvvarIManju Technologies
-* **Architect:** Manjunath Venkata Avvari
-* **Local Development Host:** `avvarimanju-laptop` (Windows 10 OS)
+Reviewed **12 November 2026**. Maintainer: AvvarIManju Technologies / Manjunath Venkata Avvari. Actual configuration in [package.json](package.json), [tsconfig.json](tsconfig.json) and [manifest.yml](manifest.yml) takes precedence over this summary.
 
----
+## Runtime and dependencies
 
-## 1. Core Platform & Runtime Stack
+| Layer | Current configuration | Limit |
+| --- | --- | --- |
+| Forge runtime | nodejs20.x | Installed-site behavior/timing unverified |
+| Local Node | Node 20.6+ for --env-file | Host runtime need not equal Forge runtime |
+| Language/build | TypeScript ^5.6.2, ES2022, CommonJS, strict, react-jsx | build emits dist; typecheck also checks tests/scripts |
+| Forge APIs | @forge/api ^8.4.0, @forge/kvs ^2.1.1 | KVS for installation-scoped snapshots, not a guaranteed <50ms service |
+| Forge UI | @forge/react ^10.6.0, @forge/bridge ^7.2.1, @forge/resolver ^2.0.2, React ^18.2.0 | Cached scorecards, not the static localhost portal |
+| Hosted SQL | @libsql/client ^0.18.0, web HTTP client | Live Turso portal storage |
+| Offline SQL | sql.js ^1.15.2 (dev dependency) | Local portal/judge SQLite and WebAssembly |
+| Verification | Vitest ^2.1.8, tsx ^4.19.2, Forge manifest validator | Atlassian API tests mocked |
 
-| Layer | Technology / Package | Version | Role in ArthaKavacham |
-| :--- | :--- | :--- | :--- |
-| **Cloud Execution Platform** | **Atlassian Forge** | Latest (2026) | Zero-infrastructure serverless hosting, multi-tenant isolation, OAuth boundary, and native product extensibility. |
-| **Serverless Runtime** | **Node.js (Forge Runtime)** | `nodejs20.x` | Executes synchronous workflow validators (`< 250ms`), Rovo actions, Teamwork Graph syncs, and the MCP Webtrigger server. |
-| **Primary Language** | **TypeScript** | `^5.6.0` | Strictly typed mathematical verification engine (`quotaEngine.ts`), graph payloads, and JSON-RPC 2.0 MCP contracts. |
-| **Frontend / UI Layer** | **Forge UI Kit 2 (`@forge/react`)** | `^10.x` | Renders the interactive FinOps & Compliance Scorecard in `jira:issuePanel` and policy tables in `confluence:macro`. |
-| **State & Caching Store** | **Forge KVS (`@forge/kvs` / `storage`)** | Native | Low-latency (`< 50ms`) key-value store for pre-indexed cloud quota snapshots, ADR compliance flags, and immutable audit logs. |
-| **Secret Management** | **Forge Encrypted Secrets** | Native | Stores external API tokens (`storage.setSecret`) for Vercel, Supabase, Turso, and Cloudflare. |
+These are declared version ranges, not pinned installed versions. package-lock.json is currently ignored; do not claim a committed lockfile. No Forge LLM SDK, immutable audit-log subsystem or automatic infrastructure provisioning is implemented.
 
----
+## Modes and stores
 
-## 2. Atlassian Ecosystem & Codegeist 2026 Bonus Track Stack
+| Command | Data path |
+| --- | --- |
+| npm run dev:turso | .env.local -> hosted Turso portal SQL; optional Platform API usage monitor |
+| npm run dev | Offline SQLite at .local/arthakavacham.sqlite |
+| npm run demo | Isolated .local/judge-demo.sqlite; no Jira writes |
+| npm run telemetry:local | Offline SQLite status; stop the same-file dev writer first |
+| Forge scheduled handler | Turso/optional Supabase -> measured staging -> ADR context -> active KVS |
+| Forge gates | Cache-only engine; 200ms operation deadline toward under-250ms target |
 
-| Track / Pillar | Atlassian Module / API | Implementation Details |
-| :--- | :--- | :--- |
-| **Jira Enforcement & UI** | `jira:workflowValidator`, `jira:issuePanel` | Hard-blocks ticket transitions when $\mathcal{B} > 1.0$ or $\mathbb{I}_{\text{comp}} = 0$; displays live provider quota progress bars. |
-| **Confluence Governance** | `confluence:macro`, Confluence REST API v2 | Embeds and parses structured Architecture Decision Record (ADR) compliance policies (data residency, mandatory caching). |
-| **Bitbucket Code Gate** | `bitbucket:mergeCheck` | Locks Pull Request merges when SQL/serverless diffs breach the deterministic Quota Blast-Radius threshold. |
-| **Assignable AI Agents** | **Atlassian Rovo (`rovo:agent`, `rovo:action`)** | Powers `@ArthaKavacham` to evaluate tickets, label blocked issues, assign FinOps owners, and create optimization sub-tasks. |
-| **Organizational Context** | **Atlassian Teamwork Graph (TWG API)** | Maps `CloudQuotaNode` and `ServiceTelemetryNode` entities directly to Jira Issues, Confluence ADRs, and owning squads. |
-| **IDE Context Protocol** | **Atlassian MCP (`webtrigger` JSON-RPC 2.0)** | Exposes `verify_quota_guardrail` and `get_live_cloud_quotas` to local agentic IDEs before `git commit`. |
+Live usage cache is process memory, not SQL or KVS. Status polling does not collect; explicit refresh performs usage/subscription/plans GETs at most once per minute. Data older than five minutes is marked stale.
 
----
+## Environment
 
-## 3. Monitored Cloud Infrastructure Telemetry Targets
+| Variable | Purpose |
+| --- | --- |
+| TURSO_DATABASE_URL | Hosted libsql:// or https:// database endpoint |
+| TURSO_AUTH_TOKEN | SQL database token; server-only |
+| TURSO_ORGANIZATION | Organization/account slug for Platform API |
+| TURSO_API_TOKEN | Separate organization-scoped Platform API token |
+| SUPABASE_PROJECT_REF / SUPABASE_MANAGEMENT_TOKEN | Optional Forge database-size collector; not configured locally |
+| ARTHAKAVACHAM_ISSUE_KEYS | Forge scheduled issue selection |
+| ARTHAKAVACHAM_MCP_TOKEN | Forge/public RPC bearer secret |
+| PORT | Local HTTP port (default 3000) |
+| ARTHAKAVACHAM_LOCAL_DB | Offline SQLite file override |
 
-**ArthaKavacham** ingests live usage $U_i(t)$ and hard tier ceilings $Q_i$ from four primary serverless/database platforms (with a built-in deterministic **Judge Demo Seeder** for zero-credential testing):
+.env.local is ignored by Git and is not automatically loaded into Forge. Configure Forge variables separately, encrypting secrets. Do not print values, embed tokens in screenshots/URLs or overwrite existing credentials with templates.
 
-1. **Vercel REST API (`api.vercel.com/v1/usage`):**
-   * Monitored Metrics: Serverless Function Execution (GB-Hours), Edge Middleware Invocations, Fast Origin Transfer (GB).
-2. **Supabase Management API (`api.supabase.com/v1/projects/{ref}/usage`):**
-   * Monitored Metrics: Database Storage (MB), Egress Bandwidth (GB), PgBouncer Connection Pool saturation.
-3. **Turso Platform API (`api.turso.tech/v1/organizations/{org}/usage`):**
-   * Monitored Metrics: Monthly Row Reads (Billions), Monthly Row Writes (Millions), Total SQLite Storage (GB).
-4. **Cloudflare GraphQL Analytics API (`api.cloudflare.com/client/v4/graphql`):**
-   * Monitored Metrics: Workers Requests & CPU Time, KV Reads/Writes, D1 Rows Read/Written.
+See [Turso credentials](docs/turso-storage.md), [Turso collector](docs/turso-telemetry.md) and [optional Supabase collector](docs/supabase-telemetry.md).
 
----
+## Provider implementations
 
-## 4. Reference `package.json` & Dependencies
+Turso collects actual organization usage from /usage and resolves allowances from /subscription plus /plans. Supabase's optional fixed read-only database-size query uses its Management API, not object Storage. Supabase connection monitoring, Vercel and Cloudflare collectors remain unimplemented. None of those services is an application database dependency.
 
-Use this exact `package.json` configuration to avoid native C++ binary incompatibilities inside the Forge Node.js 20 sandbox:
+The Vercel demo GB-hours dimension is labelled legacy function duration, not active CPU. Future live dimensions must match actual provider units and active plan semantics; example fixture quotas are never plan specifications.
 
-```json
-{
-  "name": "arthakavacham",
-  "version": "1.0.0",
-  "description": "Active FinOps & Compliance Shield on Atlassian Forge (Codegeist 2026)",
-  "author": "Manjunath Venkata Avvari <AvvarIManju Technologies>",
-  "license": "MIT",
-  "private": true,
-  "scripts": {
-    "build": "tsc --noEmit",
-    "lint": "forge lint",
-    "deploy:dev": "forge deploy -e development",
-    "deploy:prod": "forge deploy -e production",
-    "install:jira": "forge install --product jira --upgrade",
-    "install:confluence": "forge install --product confluence --upgrade",
-    "tunnel": "forge tunnel",
-    "test": "vitest run"
-  },
-  "dependencies": {
-    "@forge/api": "^4.2.0",
-    "@forge/bridge": "^4.1.0",
-    "@forge/kvs": "^1.0.0",
-    "@forge/react": "^10.6.0",
-    "react": "^18.2.0"
-  },
-  "devDependencies": {
-    "@forge/cli": "^10.10.0",
-    "@types/node": "^20.14.0",
-    "@types/react": "^18.2.0",
-    "typescript": "^5.6.2",
-    "vitest": "^2.1.0"
-  }
-}
-```
+## Forge modules and permissions
 
----
+The manifest declares Jira workflowValidator/issuePanel, Bitbucket mergeCheck, Confluence macro, rovo:agent, action, webtrigger and scheduledTrigger modules. It does not declare mcp:server or a custom Teamwork Graph connector.
 
-## 5. Reference `tsconfig.json`
+Declared scopes include storage:app, Jira read/write/user, Confluence content read, Bitbucket pull-request read, and Graph user/team read. Backend egress includes Vercel, Supabase, Turso and Cloudflare API hosts. Allowing an egress host does not mean a live collector exists. Inspect the manifest for exact values; do not copy stale YAML examples.
 
-```json
-{
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "CommonJS",
-    "lib": ["ES2022", "DOM"],
-    "jsx": "react-jsx",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "outDir": "./dist",
-    "rootDir": "./src"
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
-}
-```
+## Windows operations and deployment
 
----
+Use PowerShell/cmd and cross-platform Node paths. Turso's CLI Windows setup uses Ubuntu WSL; the Node portal itself runs in PowerShell. Do not assume the CLI is installed or native on Windows.
 
-## 6. Least-Privilege Forge Scopes & Egress Permissions (`manifest.yml`)
+EADDRINUSE means the selected port already has a listener. Verify ownership before stopping a process; avoid unrelated Node processes. Environment edits need a restart.
 
-```yaml
-permissions:
-  scopes:
-    - storage:app
-    - read:jira-work
-    - write:jira-work
-    - read:jira-user
-    - read:confluence-content.all
-    - read:confluence-content.summary
-  external:
-    fetch:
-      backend:
-        - '[https://api.vercel.com](https://api.vercel.com)'
-        - '[https://api.supabase.com](https://api.supabase.com)'
-        - '[https://api.turso.tech](https://api.turso.tech)'
-        - '[https://api.cloudflare.com](https://api.cloudflare.com)'
-```
+Build/typecheck/lint/manifest checks and tests are local. No Vercel Preview deployment for routine testing. vercel.json currently enables prod and disables dev in repository configuration; deployed dashboard/Git settings and other branches may differ. Check known settings before pushes/PRs and never change them without authorization. Forge deploy/install commands are activation actions, not part of routine local validation.
 
----
+## Licensing and readiness
 
-## 7. Local Developer & Agentic Tooling (`avvarimanju-laptop` — Windows 10)
-
-* **Operating System:** Windows 10 (64-bit) with PowerShell 7 / Windows PowerShell.
-* **Agentic IDEs & Builders:**
-  * **Google Antigravity** (running **Gemini 3.0 Flash Medium** with **Remote Control** enabled on `avvarimanju-laptop`).
-  * **Kiro IDE**, **VS Code**, and **Claude Code** connected via `.agents/mcp_config.json` to the Forge MCP Webtrigger endpoint.
-* **Key Windows 10 CLI Commands:**
-  ```powershell
-  # 1. Create file in project root
-  New-Item -Path .\TECHNICAL_STACK.md -ItemType File -Force
-
-  # 2. Authenticate & register the Forge App ID
-  forge login
-  forge register
-
-  # 3. Deploy and generate the MCP Webtrigger URL
-  npm install
-  forge deploy -e development
-  forge webtrigger
-  ```
+package.json declares Apache-2.0; a standalone LICENSE file is absent. The last dependency installation reported 62 audit findings (32 moderate, 28 high, 2 critical); this is historical output, not a fresh audit or a claim all findings affect deployed code. Review before production. See [status](docs/status.md).

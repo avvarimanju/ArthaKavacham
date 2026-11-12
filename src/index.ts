@@ -2,9 +2,13 @@ import { validateJiraTransition as jiraGate, validateBitbucketMerge as mergeGate
 import { handleEvaluateBlastRadius as evaluate, handleApplyRemediation as remediate,
   handleCreateOptimizationSubtask as subtask } from './rovo/actions';
 import { RovoActionInput, RovoActionResult } from './types';
-import { forgeStore, QuotaSnapshot } from './state/snapshots';
+import { forgeStore } from './state/snapshots';
 import { createAtlassianClient } from './atlassian/client';
-import { syncIssue } from './atlassian/context';
+import { syncTelemetry } from './telemetry/sync';
+import { loadTursoConfig, TursoConfig } from './telemetry/turso';
+import { forgeTursoPolicies } from './telemetry/tursoSync';
+import { loadSupabaseConfig, SupabaseConfig } from './telemetry/supabase';
+import { forgeSupabasePolicies } from './telemetry/supabaseSync';
 export { handleMcpEndpoint } from './mcp/mcpServer';
 export async function validateJiraTransition(payload: WorkflowValidatorPayload): ReturnType<typeof jiraGate> {
   return jiraGate(payload);
@@ -24,12 +28,11 @@ export async function handleCreateOptimizationSubtask(payload: RovoActionInput):
 export async function handleTelemetrySync(): Promise<{ status: string; synced: string[] }> {
   const keys: string[] = (process.env.ARTHAKAVACHAM_ISSUE_KEYS ?? '').split(',').map((key: string): string => key.trim()).filter(Boolean);
   if (!keys.length) throw new Error('Configure ARTHAKAVACHAM_ISSUE_KEYS and measured telemetry ingestion');
+  const config: TursoConfig | undefined = loadTursoConfig();
+  const supabase: SupabaseConfig | undefined = loadSupabaseConfig();
   const client = await createAtlassianClient(false);
-  const synced: string[] = [];
-  for (const key of keys) {
-    const snapshot: QuotaSnapshot = await syncIssue(key, client, forgeStore, async (): Promise<string[]> => []);
-    await forgeStore.set(key, snapshot);
-    synced.push(key);
-  }
+  const synced: string[] = await syncTelemetry(keys, { client, store: forgeStore,
+    turso: config ? { config, policies: forgeTursoPolicies } : undefined,
+    supabase: supabase ? { config: supabase, policies: forgeSupabasePolicies } : undefined });
   return { status: 'SUCCESS', synced };
 }

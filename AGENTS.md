@@ -1,179 +1,92 @@
-# 🤖 AGENTS.md — ArthaKavacham
-> **Autonomous Agent Operating Guidelines, Rovo Behavioral Directives & MCP Protocol**  
-> *Project: ArthaKavacham (Active FinOps & Regulatory Compliance Shield on Atlassian Forge)*  
-> *Targeted Codegeist 2026 Prize Tracks: Best Agents (Rovo) & Best App with Atlassian MCP*  
-> *Organization: AvvarIManju Technologies | Architect: Manjunath Venkata Avvari*
+# AGENTS.md — ArthaKavacham
 
----
+Mandatory guidance for coding agents and the intended Rovo guardian. Organization: **AvvarIManju Technologies**. Architect: **Manjunath Venkata Avvari**. Reviewed **12 November 2026**.
 
-## 1. Scope & Dual Persona Overview
+Read [current status](docs/status.md) before describing capabilities, and [contracts](SKILLS.md) before invoking actions/tools. Codegeist prize tracks are project targets, not evidence of qualification or awards.
 
-This document specifies the operational guidelines for autonomous AI agents interacting with the **ArthaKavacham** ecosystem:
+## Current operating context
 
-1. **Atlassian Rovo Assignable Agent (`@ArthaKavacham`):**  
-   The embedded AI FinOps and compliance guardian operating natively inside Jira Cloud, Confluence Cloud, and Rovo Chat via `rovo:agent` and `rovo:action`.
-2. **Local & Remote Coding Agents (Google Antigravity, Claude Code, Kiro IDE, VS Code):**  
-   Developer-facing coding agents operating on the developer workstation (Windows 10 host) and connected via the **Atlassian MCP Webtrigger** endpoint (`arthakavacham-mcp-endpoint`).
+The localhost portal uses live Turso for SQL persistence or offline SQLite for demo state. A separate live Turso organization usage panel is verified locally. Supabase and Cloudflare store no app data. Vercel/Cloudflare rows are synthetic; optional Supabase database-size collection is implemented but inactive locally. Forge integration code exists, but installed Jira/Bitbucket enforcement, Rovo behavior, Graph responses and gate latency remain unverified.
 
----
+Never describe live SQL storage as proof that demo consumption is measured or that a Jira transition actually occurred.
 
-## 2. Core Operational Commandments
+## Rule 1: Deterministic math and evidence
 
-All agents modifying code, evaluating tickets, or executing gate checks in this repository **must strictly observe** the following rules:
+All B/C/decision evaluations must call src/math/quotaEngine.ts:
 
-### Rule 1: Zero Hallucination — Deterministic Math Only
-* Agents **must never** estimate, invent, or guess quota impact values.
-* All quota blast-radius ($\mathcal{B}$) and confidence score ($\mathcal{C}$) evaluations must execute the deterministic formulas defined in `src/math/quotaEngine.ts`:
-  $$\mathcal{B}_i = \frac{U_i(t) + \Delta \hat{U}_i \cdot \lambda_i}{Q_i \cdot \tau_i}, \quad \mathcal{B} = \max_i \mathcal{B}_i$$
-  $$\mathcal{C} = \mathbb{I}_{\text{comp}} \cdot \max(0, 1 - \mathcal{B})$$
-* If $\mathcal{B} > 1.0$ or $\mathbb{I}_{\text{comp}} = 0$, the gate decision is deterministically `BLOCK`. No agent may override this without applying a verified remediation strategy or an approved Confluence ADR.
+~~~text
+B_i = (U_i + projectedDelta_i × lambda_i) / (Q_i × tau_i)
+B = max(B_i)
+C = I_comp × max(0, 1 - B)
+ALLOW iff B <= 1 and I_comp = 1
+~~~
 
-### Rule 2: Sub-250ms Synchronous Execution Boundary
-* Synchronous Forge gate enforcers (`jira:workflowValidator` and `bitbucket:mergeCheck`) must execute in **under 250 milliseconds**.
-* Never perform un-cached external HTTP calls inside synchronous validators. Always read pre-cached snapshots from Forge KVS (`@forge/kvs`) or the in-memory Judge Demo Seeder.
+Never estimate, invent or guess quota impact values. Supply explicit measured/approved projections and verified allowances. C is headroom, not probability. Decisions use full precision; display rounding must not affect boundaries.
 
-### Rule 3: Windows 10 Host Environment Constraints
-* The local development workstation is Windows 10 (`avvarimanju-laptop`).
-* Terminal commands must use Windows-compatible syntax (e.g., `cmd /c dir`, `cmd /c type`, `cmd /c copy`).
-* Never run POSIX-only shell commands (such as `ls -la`, `cat`, `rm -rf`, or `export FOO=BAR`).
-* In TypeScript/Node.js code, always use cross-platform path resolution (`path.join`) or forward slashes.
+If B>1 or compliance is false, BLOCK. An approved ADR may establish compliance but never waive the quota condition. Only verified remediation plus reevaluation can clear a breach.
 
-### Rule 4: Coding Standards & Function Sizing
-* Functions must strictly be kept **under 40 lines of code**.
-* All functions, parameters, and return types must carry explicit TypeScript type annotations (no implicit `any`).
-* Follow Don't Repeat Yourself (**DRY**) principles across validators, actions, and MCP handlers.
+Measured ingestion currently requires all four providers. Missing/malformed/future/stale/incomplete evidence blocks. Do not silently drop a provider/dimension or promote synthetic data into measured snapshots. Turso usage counters are consumption; allowances come separately from the active subscription's matching plan.
 
----
+## Rule 2: Synchronous execution boundary
 
-## 3. Rovo Agent (`@ArthaKavacham`) Specification
+Jira workflow and Bitbucket merge validators must target **under 250ms**. Never perform uncached provider/Atlassian HTTP calls in them. Use pre-cached Forge KVS or isolated in-memory test fixtures. The implementation has a 200ms cached-operation deadline; installed-site cold starts/KVS timing still need measurement. Do not claim a platform-wide latency guarantee.
 
-### 3.1 Persona & System Prompt
-```
-You are @ArthaKavacham, an autonomous FinOps and regulatory compliance guardian built on Atlassian Forge.
-You monitor live consumption across Vercel, Supabase, Turso, and Cloudflare, enforce Confluence ADR policies,
-and protect software engineering teams from budget overruns and unauthorized cloud dependencies.
-When evaluating Jira issues or PR diffs, execute deterministic math via your actions, cite exact breaching
-dimensions and percentages, and provide concrete architectural remediation strategies.
-```
+The remote SQL portal store and usage collector must stay outside synchronous Forge gates.
 
-### 3.2 Action Catalog & Dispatch Matrix
+## Rule 3: Windows host compatibility
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Dev as Developer / Release Lead
-    participant Jira as Jira Cloud / Workflow
-    participant Rovo as @ArthaKavacham (Rovo Agent)
-    participant Engine as Quota Engine (quotaEngine.ts)
-    participant Seeder as Telemetry & KVS Store
+The workstation is Windows 10. Use PowerShell/cmd-compatible commands; never run bare POSIX-only commands such as ls -la, cat, rm -rf or export. If Turso CLI setup requires WSL, explicitly identify that separate environment; do not assume the CLI is native to PowerShell.
 
-    Dev->>Jira: Assign issue to @ArthaKavacham or trigger release transition
-    Jira->>Rovo: Invokes evaluate-issue-blast-radius
-    Rovo->>Seeder: Reads cached telemetry (Vercel, Supabase, Turso, Cloudflare)
-    Rovo->>Engine: evaluateQuotaGate(metrics, isCompliant)
-    Engine-->>Rovo: Returns Blast-Radius (B), Confidence (C), Decision
-    
-    alt Blast-Radius B > 1.0 (Breach)
-        Rovo->>Jira: Blocks transition + posts mathematical breach breakdown
-        Dev->>Rovo: "@ArthaKavacham remediate this ticket with edge-cache"
-        Rovo->>Rovo: Invokes apply-quota-remediation(strategy)
-        Rovo->>Engine: Re-evaluates post-remediation blast radius
-        Rovo->>Jira: Labels ticket 'Quota-Remediated', updates gate to ALLOW
-        Rovo->>Jira: Invokes create-optimization-subtask for sprint tracking
-    else Blast-Radius B <= 1.0 (Pass)
-        Rovo->>Jira: Permits issue transition + attaches FinOps pass badge
-    end
-```
+Use path.join or forward slashes in Node/TypeScript. Verify absolute target paths before recursive delete/move. Verify process identity before stopping a localhost listener; never stop unrelated Node processes.
 
-### 3.3 Rovo Action Input/Output Schemas
+## Rule 4: Code standards
 
-#### Action 1: `evaluate-issue-blast-radius`
-* **Action Verb:** `GET` (Read-only analysis)
-* **Inputs:**
-  * `issueKey` (`string`, required): Jira issue key (e.g., `PROJ-42`).
-  * `projectedRowReadsDelta` (`number`, optional): Explicit override for database read unit deltas.
-* **Outputs:**
-  * `issueKey`: Evaluated issue key.
-  * `allowed`: Boolean gate result (`true` if $B \le 1.0 \land \mathbb{I}_{\text{comp}} = 1$).
-  * `blastRadiusScore`: Max blast radius $\mathcal{B}$.
-  * `confidenceIndex`: Confidence $\mathcal{C}$.
-  * `breachingDimensions`: Array of formatted breaching dimensions.
-  * `verdictSummary`: Human-readable verdict.
+Keep functions strictly **under 40 lines**. TypeScript functions, parameters and return values require explicit types; no implicit any. Apply DRY across validators, actions and RPC handlers. Run relevant build/type/standards/manifest checks and tests for code changes. Documentation-only updates should verify links/contracts rather than make unnecessary provider calls or deploy.
 
-#### Action 2: `apply-quota-remediation`
-* **Action Verb:** `UPDATE` (State-modifying)
-* **Inputs:**
-  * `issueKey` (`string`, required): Target Jira issue key.
-  * `remediationStrategy` (`string`, required): Concrete architectural fix code (e.g., `edge-cache-cloudflare`, `batch-libsql-turso`, `pool-supabase`).
-* **Outputs:**
-  * Applies `Quota-Remediated` and `FinOps-Approved` labels.
-  * Computes remediated blast radius (typically 80% delta reduction).
-  * Returns post-remediation decision.
+Preserve existing user changes, secrets and unrelated runtime behavior.
 
-#### Action 3: `create-optimization-subtask`
-* **Action Verb:** `WRITE` (Issue creation)
-* **Inputs:**
-  * `parentIssueKey` (`string`, required): Parent Jira ticket key.
-  * `summary` (`string`, required): Optimization subtask title.
-* **Outputs:**
-  * Creates Jira subtask ticket key (e.g., `PROJ-42-FINOPS-1`).
-  * Generates concrete checklist items (KV caching, query batching, PgBouncer pooling).
+## Vercel deployment preference
 
----
+- Avoid unnecessary Vercel Preview deployments to conserve quota.
+- Use local builds/tests/localhost checks for routine verification.
+- Create a Preview only when explicitly requested or when the user agrees a specific need requires it.
+- Before non-production pushes or PRs, check known Git integration settings because these may create Previews. Repository vercel.json currently enables prod and disables dev; dashboard/other-branch settings may differ.
+- Avoid redundant validation pushes, honor explicit dev/prod push requests, and never change deployment settings without authorization.
+- No deployment, Git push, publication or installed-site readiness claim follows from local success.
 
-## 4. Local Coding Agent MCP Integration (Antigravity / Claude Code / Kiro IDE)
+## Rovo persona and action limits
 
-Local developer agents interact with the running Forge app via the **Atlassian Model Context Protocol (MCP)** JSON-RPC 2.0 Webtrigger endpoint.
+The intended guardian explains measured quota/policy breaches, cites dimensions/percentages and suggests concrete architectural investigation. It must distinguish observed usage, explicit projections, stale/missing inputs and synthetic demonstrations. No autonomous cloud architecture deployment is implemented.
 
-### 4.1 MCP Client Configuration
-Place in your agent's MCP configuration file (e.g., `.agents/mcp_config.json`):
-```json
-{
-  "mcpServers": {
-    "arthakavacham": {
-      "url": "https://<forge-webtrigger-url>/arthakavacham-mcp-endpoint",
-      "transport": "http"
-    }
-  }
-}
-```
+| Action | Manifest verb | Required inputs | Behavior |
+| --- | --- | --- | --- |
+| evaluate-issue-blast-radius | GET | issueKey | Cached analysis; optional explicit projectedRowReadsDelta override is read-only |
+| apply-quota-remediation | UPDATE | issueKey, remediationStrategy | Verifies newer measured evidence or explicitly simulates demo deltas |
+| create-optimization-subtask | CREATE | parentIssueKey, summary | Creates real Jira subtask using metadata and returns actual key |
 
-### 4.2 Available MCP Tools
+Supported strategies: edge-cache-cloudflare, batch-libsql-turso, pool-supabase. Names do not mean deployment occurred. Measured ALLOW applies approval labels; BLOCK applies review labels. Demo actions produce no Jira labels/comments. Do not claim an automatic 80% production reduction, automatic subtask creation or invented issue key. See [complete contracts](SKILLS.md).
 
-#### Tool: `verify_quota_guardrail`
-* **Purpose:** Pre-commit/pre-merge verification before running `git commit` or opening a Bitbucket PR.
-* **JSON-RPC Request Example:**
-  ```json
-  {
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "tools/call",
-    "params": {
-      "name": "verify_quota_guardrail",
-      "arguments": {
-        "issueKey": "PROJ-42",
-        "projectedRowReadsDelta": 266818182
-      }
-    }
-  }
-  ```
-* **Tool Response:**
-  Returns full evaluation object including `blastRadius: 1.11`, `decision: "BLOCK"`, and exact breaching breakdown.
+## MCP-style verification
 
-#### Tool: `get_live_cloud_quotas`
-* **Purpose:** Queries live and ceiling metrics across Vercel, Supabase, Turso, and Cloudflare.
-* **Arguments:** `{"scenario": "BREACH" | "HEALTHY"}`.
+Before commits or opening Bitbucket PRs, invoke verify_quota_guardrail when the configured measured endpoint is available. Never fabricate its result or silently bypass a BLOCK. If no configured endpoint/evidence is available, report that limitation; local demo output is not measured approval.
 
----
+Both quota tools require issueKey. get_live_cloud_quotas returns a cached snapshot with provenance/timestamp, not an immediate provider query. verify_quota_guardrail optionally accepts explicit projectedRowReadsDelta for analysis without changing the stored gate snapshot.
 
-## 5. Escalation & Triage Protocol for Agents
+Forge webtrigger access requires ARTHAKAVACHAM_MCP_TOKEN as an Authorization bearer header. Do not invent an endpoint, append an unverified path or expose tokens in URLs. No automatic Git hook or universal IDE interoperability is established. Local /api/mcp uses the loopback demo store.
 
-When an agent encounters a quota breach or compliance failure during execution:
+## Triage and ownership
 
-1. **Do Not Bypass:** Never remove or disable `@forge/workflowValidator` checks or merge checks.
-2. **Deterministic Triage:**
-   * If Turso row reads breach ($B = 1.11$): Check whether the SQL query performs an unindexed table scan or N+1 loop.
-   * If Vercel CPU execution breaches ($B > 1.0$): Recommend moving computation from Serverless Functions to Cloudflare Edge Workers.
-   * If Supabase connections breach: Verify that connection pooling (`PgBouncer` transaction mode) is active.
-   * If Compliance fails ($\mathbb{I}_{\text{comp}} = 0$): Link the ticket to an approved Confluence Architecture Decision Record (ADR) containing the `arthakavacham-adr-policy-macro`.
-3. **Escalate to Human FinOps Owner:** Query the **Atlassian Teamwork Graph** to identify the owning squad lead and post an actionable Jira comment.
+Never remove/disable validators or merge checks to resolve a breach.
+
+- Turso reads: investigate actual query plans, indexes and N+1 patterns; demo B approximately 1.11 is not a real account diagnosis.
+- Vercel compute: check the actual active metric/plan and workload before proposing optimization. Legacy GB-hours are not current active CPU units.
+- Supabase connections: verify actual pooling/configuration when that provider is genuinely in scope.
+- Compliance: verify approved/current Confluence ADRs containing actual policy macro markup. A textual mention is insufficient.
+- Use the explicit FinOps owner, falling back to assignee. Query real memberships when authorized; do not infer a squad lead from membership. Post Jira comments only within an authorized action/workflow.
+- Custom quota graph entity ingestion is not implemented. Local graph relationships must not be described as ingested Atlassian data.
+
+## Secrets and reporting
+
+.env.local is ignored and must remain local. Database token and Platform API token are different credentials. Do not print credentials or overwrite them with examples. Forge environment variables are configured separately.
+
+Mark work as implemented, locally verified, optional/inactive, simulated or pending installation as appropriate. Preserve evidence limits in [status](docs/status.md), [tasks](task.md) and setup guides when behavior changes.

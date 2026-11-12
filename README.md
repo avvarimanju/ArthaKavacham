@@ -1,233 +1,118 @@
-# 🛡️ ArthaKavacham (अर्थकवचम्)
-> **Active FinOps & Regulatory Compliance Shield on Atlassian Forge**  
-> *Codegeist 2026: Build with context. Ship with confidence.*
+# ArthaKavacham
 
-[![Atlassian Forge](https://img.shields.io/badge/Atlassian-Forge%20Node%2020-0052CC?logo=atlassian&logoColor=white)](https://developer.atlassian.com/platform/forge/)
-[![Rovo Agent](https://img.shields.io/badge/Atlassian-Rovo%20Agent%20%26%20Actions-FF5630?logo=atlassian&logoColor=white)](https://www.atlassian.com/software/rovo)
-[![Atlassian MCP](https://img.shields.io/badge/Protocol-Atlassian%20MCP%20JSON--RPC-6554C0)](https://modelcontextprotocol.io/)
-[![TypeScript 5.6](https://img.shields.io/badge/Language-TypeScript%205.6-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+**A FinOps and architecture-compliance checkpoint for software releases.**
 
-## Current implementation status
+ArthaKavacham asks whether a proposed change will exceed a cloud resource safety ceiling and whether its architecture has been approved. Its TypeScript engine makes deterministic decisions; an AI agent cannot invent consumption values or override a failed check.
 
-Phase 2 includes deterministic boundary fixes, shared KVS snapshots, measured-remediation verification, Jira/Confluence adapters, Teamwork Graph membership lookup, automated tests and an isolated judge CLI. Run `npm run demo` for the BLOCK → remediation simulation → ALLOW flow. See [setup, limitations and verification](docs/phase2.md) before activating integrations. Live provider collectors and installed-site validation remain outstanding; the architecture below describes the intended full system.
+Project by **AvvarIManju Technologies**. Architect: **Manjunath Venkata Avvari**. Codegeist 2026 participation and prize tracks are project targets, not evidence of eligibility, submission, awards or Marketplace publication.
 
----
+## Current status — 12 November 2026
 
-## 📌 Executive Summary
+The working localhost portal stores application state in **live Turso**, displays **real Turso organization usage**, and demonstrates release rules with separate synthetic scenarios. Installed Atlassian enforcement remains unverified. See [current status](docs/status.md).
 
-Modern software engineering teams build on elastic, consumption-priced serverless tiers—including **Vercel** (CPU execution, edge invocations), **Supabase** (Postgres storage, connection pools), **Turso** (LibSQL row reads/writes), and **Cloudflare** (Workers invocations, D1 rows). While sprint planning, architectural decisions, and pull requests live in **Jira**, **Confluence**, and **Bitbucket**, live cloud infrastructure consumption and compliance governance reside in disconnected silos.
+| Service | Role | Current state |
+| --- | --- | --- |
+| Turso | Application SQL storage and monitored provider | Live portal persistence and organization usage verified locally |
+| Vercel | Hosting/integration target and monitored provider | Hosting configuration/API wrapper exist; demo quota metrics; no live collector |
+| Supabase | Optional monitored provider | Demo storage/connections; optional Forge database-size collector implemented but inactive locally and not live-verified |
+| Cloudflare | Monitored provider and possible remediation target | Demo Workers/D1 metrics; no live collector or infrastructure deployment |
+| Forge | Jira, Bitbucket, Confluence, Rovo and RPC integration runtime | Manifest, adapters and cached KVS gates implemented; installed-site activation and timing remain open |
 
-Traditional FinOps tools are passive dashboards that alert teams *after* a quota is breached or an invoice explodes. **ArthaKavacham** (*Artha* = Capital/Resource, *Kavacham* = Armor/Shield) shifts FinOps and compliance left into the developer's core workflow by acting as an **active, deterministic pre-merge and pre-transition gatekeeper** natively hosted on **Atlassian Forge**.
+**No application data is stored in Supabase or Cloudflare.** Their demo warnings do not describe the user's accounts.
 
----
+## Run the portal
 
-## 🏆 Targeted Codegeist 2026 Prize Tracks
+Use Node.js 20.6+ for environment-file loading, then install dependencies:
 
-| Track | Identifier | Implementation in ArthaKavacham |
-| :--- | :--- | :--- |
-| **Primary Category** | Apps for Software Teams | Active FinOps guardrail embedded across Jira, Bitbucket, and Confluence. |
-| **Bonus Track 1** | Best Agents (Rovo) | Assignable Rovo Agent (`@ArthaKavacham`) + 3 Rovo Actions (`evaluate-issue-blast-radius`, `apply-quota-remediation`, `create-optimization-subtask`). |
-| **Bonus Track 2** | Best Teamwork Graph App | Contextual graph mapping linking `CloudQuotaNode` to Jira issues and Confluence ADRs. |
-| **Bonus Track 3** | Best App with Atlassian MCP | JSON-RPC 2.0 Webtrigger endpoint enabling local IDEs (Claude Code, Kiro IDE, Antigravity) to verify quotas before `git commit`. |
-| **Bonus Track 4** | Best Marketplace App | Production-ready manifest, multi-tenant Forge storage, and zero-credential Judge Demo Seeder. |
-
----
-
-## 📐 Mathematical Verification Engine
-
-ArthaKavacham eliminates non-deterministic LLM hallucinations by calculating deterministic quota blast-radius scores in `src/math/quotaEngine.ts`:
-
-### 1. Quota Blast-Radius ($\mathcal{B}$)
-$$\mathcal{B}_i = \frac{U_i(t) + \Delta \hat{U}_i \cdot \lambda_i}{Q_i \cdot \tau_i}$$
-$$\mathcal{B} = \max_{i \in \{1 \dots N\}} \mathcal{B}_i$$
-
-* $U_i(t)$: Current usage for cloud dimension $i$.
-* $\Delta \hat{U}_i$: Projected consumption delta introduced by the issue/PR.
-* $\lambda_i$: Sensitivity multiplier ($\lambda_i \ge 1.0$, default $1.1$ for traffic spikes).
-* $Q_i$: Hard provider tier ceiling.
-* $\tau_i$: Safety threshold ceiling ratio ($0 < \tau_i \le 1.0$, e.g., $0.85$ for Turso, $0.80$ for Vercel/Supabase).
-
-### 2. Regulatory Compliance Indicator ($\mathbb{I}_{\text{comp}}$)
-$$\mathbb{I}_{\text{comp}} = \begin{cases} 1 & \text{if all cloud services approved \& ADR signed} \\ 0 & \text{otherwise} \end{cases}$$
-
-### 3. Confidence Index ($\mathcal{C}$)
-$$\mathcal{C} = \mathbb{I}_{\text{comp}} \cdot \max(0, 1 - \mathcal{B})$$
-
-### 4. Gate Decision Rule
-$$\text{Decision} = \begin{cases} \mathbf{ALLOW} & \text{if } \mathcal{B} \le 1.0 \land \mathbb{I}_{\text{comp}} = 1 \\ \mathbf{BLOCK} & \text{if } \mathcal{B} > 1.0 \lor \mathbb{I}_{\text{comp}} = 0 \end{cases}$$
-
----
-
-## 🏛️ System Topology
-
-```mermaid
-flowchart TB
-    subgraph External_Cloud["External Cloud Infrastructure Telemetry"]
-        V["Vercel API\n(CPU GB-Hrs / Edge Invocations)"]
-        S["Supabase API\n(Postgres Disk / PgBouncer)"]
-        T["Turso Platform API\n(LibSQL Row Reads / Writes)"]
-        CF["Cloudflare API\n(Workers / D1 SQL Reads)"]
-    end
-
-    subgraph Forge_Async["Atlassian Forge — Asynchronous Context Ingestion"]
-        ST["scheduledTrigger\n(arthakavacham-telemetry-sync)"]
-        TWG["Atlassian Teamwork Graph\n(CloudQuotaNode <-> JiraIssue <-> ConfluenceADR)"]
-        KVS[("Forge KVS Storage\nSub-50ms Cached Snapshots")]
-    end
-
-    subgraph Forge_Intelligence["Atlassian Forge — Reasoning & Gate Verification"]
-        MATH["Deterministic Quota Engine (quotaEngine.ts)\nCalculates Blast-Radius B & Confidence C"]
-        ROVO["Assignable Rovo Agent (@ArthaKavacham)\n+ 3 Rovo Actions (actions.ts)"]
-    end
-
-    subgraph Enforcement_Gates["Synchronous Developer & Workflow Surfaces"]
-        JWV["jira:workflowValidator\n(Hard Transition Gate: B > 1.0)"]
-        BMC["bitbucket:mergeCheck\n(PR Merge Check Lock)"]
-        JIP["jira:issuePanel & confluence:macro\n(Forge UI Kit 2 Live Scorecard)"]
-        MCP["webtrigger (JSON-RPC 2.0)\n(Atlassian MCP Server Endpoint)"]
-    end
-
-    subgraph Local_IDEs["Local Developer IDEs (Windows 10 / macOS / Linux)"]
-        IDE["Google Antigravity / Claude Code / VS Code\nPre-Commit Verification via MCP"]
-    end
-
-    External_Cloud -->|"Hourly Poll / Judge Demo Seeder"| ST
-    ST -->|"Sync Entities & Edges"| TWG
-    ST -->|"Cache Metric Snapshots"| KVS
-
-    TWG <-->|"Graph Traversal"| ROVO
-    KVS -->|"Fast In-Memory Read"| MATH
-    MATH -->|"ALLOW / BLOCK"| JWV
-    MATH -->|"PASS / FAIL"| BMC
-    MATH -->|"Render Scorecard"| JIP
-    MATH -->|"Tool Result"| MCP
-    MCP <-->|"JSON-RPC 2.0"| IDE
-```
-
----
-
-## 📦 Atlassian Forge Modules (`manifest.yml`)
-
-| Module Type | Key / Identifier | Role |
-| :--- | :--- | :--- |
-| `jira:workflowValidator` | `arthakavacham-quota-gate` | Synchronously blocks issue transition to *Done* or *Release* when $\mathcal{B} > 1.0$. |
-| `jira:issuePanel` | `arthakavacham-finops-panel` | Interactive UI Kit 2 table rendering live provider loads, lozenges, and blast-radius badges. |
-| `bitbucket:mergeCheck` | `arthakavacham-pr-merge-gate` | Pull Request gate preventing merge if diff exceeds resource ceilings. |
-| `confluence:macro` | `arthakavacham-adr-policy-macro` | Embeds real-time quota guardrail policies inside Architecture Decision Records (ADRs). |
-| `rovo:agent` | `arthakavacham-agent` | Assignable AI FinOps teammate (`@ArthaKavacham`) with autonomous remediation skills. |
-| `rovo:action` | `evaluate-issue-blast-radius` | Evaluates issue consumption against Vercel, Supabase, Turso, and Cloudflare quotas. |
-| `rovo:action` | `apply-quota-remediation` | Applies architectural fixes (e.g. edge caching, connection pooling) to unblock issues. |
-| `rovo:action` | `create-optimization-subtask` | Automatically creates actionable Jira subtasks for engineers. |
-| `webtrigger` | `arthakavacham-mcp-endpoint` | Model Context Protocol (MCP) JSON-RPC 2.0 server for local IDE agents. |
-| `scheduledTrigger` | `arthakavacham-telemetry-sync` | Background hourly sync polling cloud providers and populating Forge KVS. |
-
----
-
-## 🧪 Zero-Credential Judge Demo Seeder
-
-To allow hackathon judges and evaluators to test **ArthaKavacham** instantly without providing live third-party cloud API credentials, the project includes a deterministic **Judge Demo Seeder** in `src/telemetry/cloudProviders.ts`:
-
-* **Turso:** Current: 650M reads / 1B limit ($\tau = 0.85$, SafeMax = 850M). Projected Delta = 266.8M with $\lambda = 1.1 \rightarrow$ **$\mathcal{B} = 1.11$ (111% breach!)**.
-* **Vercel:** Current: 60 GB-Hrs / 100 limit ($\tau = 0.80$, SafeMax = 80 GB-Hrs) $\rightarrow$ Active warning.
-* **Supabase:** Current: 300 MB / 500 MB limit ($\tau = 0.80$, SafeMax = 400 MB) $\rightarrow$ Active warning.
-* **Cloudflare:** Current: 6M / 10M limit ($\tau = 0.80$, SafeMax = 8M) $\rightarrow$ Healthy.
-
----
-
-## 🚀 Quickstart & Development Guide
-
-### Prerequisites
-* **Node.js:** `v20.x` or higher
-* **Atlassian Forge CLI:** `npm install -g @forge/cli`
-* **Docker:** Required for `forge tunnel` local runtime testing
-
-### 1. Clone & Install Dependencies
-```bash
-git clone https://github.com/AvvarIManju-Technologies/ArthaKavacham.git
-cd ArthaKavacham
+~~~powershell
 npm install
-```
+~~~
 
-### 2. Build TypeScript Codebase
-```bash
+For live Turso mode, create .env.local from [.env.example](.env.example) only if it does not already exist, and fill in:
+
+~~~dotenv
+TURSO_DATABASE_URL=libsql://your-database-your-org.turso.io
+TURSO_AUTH_TOKEN=your-database-token
+TURSO_ORGANIZATION=your-organization-slug
+TURSO_API_TOKEN=your-platform-api-token
+~~~
+
+The first pair authorizes SQL storage. The second pair authorizes organization usage/subscription/plan reads. Platform settings are optional for storage, required for monitoring. Keep tokens local; .env.local is ignored by Git.
+
+~~~powershell
+npm run dev:turso
+~~~
+
+Open **http://127.0.0.1:3000**, then click **Refresh live usage**. Stop the previous server before starting another on the same port; EADDRINUSE means that port is occupied. Restart after changing environment settings. See [Turso setup](docs/turso-storage.md).
+
+For offline development:
+
+~~~powershell
+npm run dev
+~~~
+
+This uses .local/arthakavacham.sqlite and never selects live collectors. The judge CLI uses a separate local SQLite file. See [offline development](docs/local-development.md).
+
+## Read the dashboard
+
+- **Live Turso Organization Usage** shows observed organization-wide reads/storage, the active plan's allowances, collection time and available billing period. It includes other databases in that organization. Usage counters are not allowances; quotas come from the matching subscription plan.
+- **Demo Quota Matrix** contains eight synthetic rows for Turso, Vercel, Supabase and Cloudflare. These fixtures are not current provider plan specifications or live measurements.
+- **Demo Transition Gate** supports Healthy, Quota Breach and Compliance Failure. Simulation changes fixture deltas, persists the baseline and recalculates; it never deploys caching, optimizes databases or performs Jira transitions.
+- Amber indicates 85–100% of the safety ceiling and is advisory. Red means above 100%. Exact arithmetic controls decisions; compact/rounded display does not change the gate.
+
+The breach fixture yields B approximately 1.11 and BLOCK. Simulated Turso remediation yields B=0.9875 and ALLOW; synthetic Supabase storage is then the bottleneck. This is not a diagnosis of a real Supabase account.
+
+## Deterministic rule
+
+~~~text
+B_i = (currentUsage + projectedDelta × sensitivityMultiplier)
+      / (quotaLimit × safetyCeilingRatio)
+B = max(B_i)
+C = complianceIndicator × max(0, 1 - B)
+ALLOW only when B <= 1 and complianceIndicator = 1
+~~~
+
+C is a headroom index, not a probability. Projections require explicit trusted measurements or an approved workload model; no LLM delta extraction is implemented. Plan allowances may be included-usage budgets rather than hard service caps when overages are allowed.
+
+Forge gates read cached KVS snapshots only. Missing, stale, malformed or incomplete evidence blocks. The measured ingestion boundary currently requires all four providers; using Turso for portal storage does not relax it. The under-250ms target still needs installed-site measurement.
+
+## Atlassian integration scope
+
+| Surface | Implemented behavior | Outstanding verification |
+| --- | --- | --- |
+| Jira | Cached workflow validator and issue scorecard | Real transitions, permissions and UI |
+| Bitbucket | PR binding, merge check and code-push invalidation | Trusted projections, Required check setup and actual merges |
+| Confluence | ADR approval/macro checks and scorecard | Tenant policy and page mappings |
+| Rovo | Evaluate, verify measured remediation, create subtask | Invocation/assignment behavior and actual site writes |
+| Teamwork Graph | Owner membership query and local relationship model | Real responses; custom entity ingestion not implemented |
+| MCP-style JSON-RPC | Quota verification and cached snapshot tools | Local tools tested; Forge endpoint/client interoperability unverified |
+
+## Validation
+
+~~~powershell
 npm run build
-```
+npm run typecheck
+npm run lint
+npm run validate:manifest
+npm test
+npm run demo
+~~~
 
-### 3. Log In & Register Forge App
-```bash
-forge login
-forge register
-```
+Recorded on 12 November 2026: **93 tests passed** and **12 localhost browser/API checks passed**, including scenarios, live refresh, remediation, reload persistence, reset, MCP, invalid/cross-origin requests and responsive layouts. Automated Atlassian calls are mocked. Browser artifacts are ignored local files, not committed CI infrastructure.
 
-### 4. Deploy to Development Environment
-```bash
-forge deploy -e development
-```
+## Documentation
 
-### 5. Install App to Jira & Confluence Cloud
-```bash
-forge install --product jira --site your-site.atlassian.net
-forge install --product confluence --site your-site.atlassian.net
-```
+| Document | Purpose |
+| --- | --- |
+| [Status](docs/status.md) | Verified capabilities and gaps |
+| [Requirements](REQUIREMENTS.md) | Scope and acceptance criteria |
+| [Architecture](ARCHITECTURE.md) | Storage boundaries and data flow |
+| [Agent rules](AGENTS.md) | Mandatory development/operation constraints |
+| [Action contracts](SKILLS.md) | Rovo and JSON-RPC behavior |
+| [Technical stack](TECHNICAL_STACK.md) | Dependencies, configuration and commands |
+| [Project structure](PROJECT_STRUCTURE.md) | Source and manifest routing |
+| [Plan](implementation_plan.md) / [tasks](task.md) | Priorities and checklist |
+| [Activation](docs/phase2.md) | Forge setup and limitations |
+| [Turso telemetry](docs/turso-telemetry.md) / [Supabase telemetry](docs/supabase-telemetry.md) | Collector contracts |
 
-### 6. Local Development Tunneling
-```bash
-forge tunnel
-```
-
-### 7. Connect Local IDE via MCP Webtrigger
-Retrieve the Forge webtrigger endpoint:
-```bash
-forge webtrigger
-```
-Add to your IDE MCP configuration (`.agents/mcp_config.json`):
-```json
-{
-  "mcpServers": {
-    "arthakavacham": {
-      "url": "https://<forge-webtrigger-url>/arthakavacham-mcp-endpoint",
-      "transport": "http"
-    }
-  }
-}
-```
-
----
-
-## 📂 Project Directory Structure
-
-```
-ArthaKavacham/
-├── package.json                   # Forge Node 20 & UI Kit 2 dependencies
-├── tsconfig.json                  # CommonJS React-JSX TypeScript configuration
-├── manifest.yml                   # Complete Forge multi-module declaration
-├── REQUIREMENTS.md                # Problem statement & hackathon specifications
-├── ARCHITECTURE.md                # System topology & data flow blueprint
-├── SKILLS.md                      # Rovo action contracts & MCP tool schemas
-├── TECHNICAL_STACK.md             # Stack specs, scopes, and Windows 10 tooling
-├── README.md                      # Project documentation (this file)
-└── src/
-    ├── index.ts                   # Export registry for all Forge function handlers
-    ├── types.ts                   # Core domain interfaces, metrics & RPC models
-    ├── math/
-    │   └── quotaEngine.ts         # Deterministic mathematical verification engine
-    ├── telemetry/
-    │   └── cloudProviders.ts      # Cloud telemetry & Judge Demo Seeder
-    ├── validators/
-    │   └── jiraWorkflowValidator.ts # Jira workflow validator & Bitbucket merge gate
-    ├── rovo/
-    │   └── actions.ts             # Rovo agent handlers (evaluate, remediate, subtask)
-    ├── mcp/
-    │   └── mcpServer.ts           # JSON-RPC 2.0 Atlassian MCP webtrigger server
-    └── ui/
-        └── issuePanel.tsx         # Forge UI Kit 2 FinOps Scorecard & ADR macro
-```
-
----
-
-## 📄 License & Attribution
-
-* **Organization:** AvvarIManju Technologies
-* **Architect & Developer:** Manjunath Venkata Avvari
-* **License:** Apache License 2.0 — see [LICENSE](LICENSE) for details.
+Use local checks for routine validation; no Vercel Preview deployment without an explicit request. Pushes and PRs can trigger Git integrations. Localhost testing establishes no public deployment, Marketplace publication or installed-site behavior. Package metadata declares Apache-2.0, but a standalone LICENSE file is currently absent.

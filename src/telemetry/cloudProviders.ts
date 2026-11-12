@@ -5,7 +5,7 @@ export function getVercelDemoMetrics(isBreach: boolean): QuotaMetric[] {
     {
       provider: 'vercel',
       metricKey: 'serverless_cpu_gb_hours',
-      metricName: 'Serverless CPU Execution',
+      metricName: 'Legacy Function Duration (demo)',
       unit: 'GB-Hours',
       currentUsage: 60,
       quotaLimit: 100.0,

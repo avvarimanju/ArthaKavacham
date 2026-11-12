@@ -1,4 +1,4 @@
-import { QuotaMetric, EvaluationResult } from '../types';
+import { QuotaMetric, EvaluationResult, CloudProviderId, DemoScenario } from '../types';
 import { evaluateQuotaGate } from '../math/quotaEngine';
 
 export interface IssueContext {
@@ -10,8 +10,10 @@ export interface IssueContext {
 }
 export interface QuotaSnapshot {
   source: 'demo' | 'measured';
+  demoScenario?: DemoScenario;
   resourceKey?: string;
   capturedAt: string;
+  providerCapturedAt?: Record<CloudProviderId, string>;
   metrics: QuotaMetric[];
   context: IssueContext;
   evidence?: { strategy: string; reference: string };
@@ -44,14 +46,32 @@ export async function readSnapshot(issueKey: string, store: SnapshotStore = forg
   if (!['demo', 'measured'].includes(snapshot.source) || typeof snapshot.context.compliant !== 'boolean') {
     throw new Error('Invalid snapshot provenance or compliance');
   }
-  const age: number = Date.now() - Date.parse(snapshot.capturedAt);
-  if (!Number.isFinite(age) || age < 0 || age > MAX_SNAPSHOT_AGE_MS) throw new Error('Quota snapshot is stale');
+  validateCaptureTimes(snapshot.capturedAt, snapshot.providerCapturedAt);
   const providers: Set<string> = new Set(snapshot.metrics.map((metric: QuotaMetric): string => metric.provider));
   if (!['turso', 'vercel', 'supabase', 'cloudflare'].every((provider: string): boolean => providers.has(provider))) {
     throw new Error('Incomplete provider snapshot');
   }
   evaluateQuotaGate(snapshot.metrics, snapshot.context.compliant);
   return snapshot;
+}
+
+export function validateCaptureTimes(capturedAt: string, providerCapturedAt?: Record<CloudProviderId, string>): void {
+  const timestamps: string[] = [capturedAt];
+  if (providerCapturedAt !== undefined) {
+    if (!providerCapturedAt || typeof providerCapturedAt !== 'object' || Array.isArray(providerCapturedAt)) {
+      throw new Error('Invalid provider capture timestamps');
+    }
+    timestamps.push(...(['turso', 'vercel', 'supabase', 'cloudflare'] as CloudProviderId[])
+      .map((provider: CloudProviderId): string => providerCapturedAt[provider]));
+  }
+  const now: number = Date.now();
+  for (const timestamp of timestamps) {
+    const age: number = now - Date.parse(timestamp);
+    if (!Number.isFinite(age) || age < 0 || age > MAX_SNAPSHOT_AGE_MS) throw new Error('Quota snapshot is stale');
+  }
+  if (Date.parse(capturedAt) !== Math.min(...timestamps.map((timestamp: string): number => Date.parse(timestamp)))) {
+    throw new Error('Snapshot timestamp must preserve the oldest provider observation');
+  }
 }
 export async function evaluateIssue(issueKey: string, store: SnapshotStore = forgeStore): Promise<EvaluationResult> {
   const snapshot: QuotaSnapshot = await readSnapshot(issueKey, store);

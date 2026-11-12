@@ -1,0 +1,7 @@
+{
+  "projectedRowReadsDelta": null,
+  "projectedStorageBytesDelta": null,
+  "rowReadsSafetyCeilingRatio": 0.85,
+  "storageSafetyCeilingRatio": 0.85,
+  "sensitivityMultiplier": 1.1
+}

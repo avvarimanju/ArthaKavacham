@@ -1,82 +1,81 @@
-# SKILLS.md — ArthaKavacham
-**Agentic Skills, Rovo Action Contracts & Atlassian MCP Tool Catalog**
+# ArthaKavacham action and tool contracts
 
-* **Project:** ArthaKavacham (Active FinOps & Compliance Shield on Atlassian Forge)
-* **Hackathon:** Codegeist 2026: Build with context. Ship with confidence.
-* **Organization:** AvvarIManju Technologies
-* **Architect:** Manjunath Venkata Avvari
-* **Target Agents:**
-  1. **Atlassian Rovo Assignable Agent** (`@ArthaKavacham` via `rovo:agent` & `rovo:action`)
-  2. **Local & Remote Coding Agents** (Google Antigravity on `avvarimanju-laptop`, Claude Code, Kiro IDE, VS Code via `Atlassian MCP`)
+Reviewed **12 November 2026** against [source](src/rovo/actions.ts) and [manifest](manifest.yml). This is repository reference documentation, not a dynamically loaded runtime registry. See [status](docs/status.md) and mandatory [agent rules](AGENTS.md).
 
----
+## Rovo invocation boundary
 
-## 1. Purpose of `SKILLS.md`
+The manifest declares rovo:agent with three entries in the action module. Do not document assignment, comment mention or workflow events as automatically wired without installed-site evidence. No LLM parser extracts projected usage from arbitrary ticket/PR text.
 
-This file serves a dual role in the **ArthaKavacham** monorepo:
-1. **Runtime Skill Registry for `@ArthaKavacham` (Rovo Agent & MCP Server):** Defines the exact deterministic capabilities, input/output JSON schemas, and execution boundaries for every `rovo:action` and Model Context Protocol (`MCP`) tool exposed by the Forge app.
-2. **Developer Agent Steering Playbook (Google Antigravity / Claude Code / Kiro IDE):** Gives autonomous coding agents strict rules for building, testing, and deploying Atlassian Forge modules on Windows 10 without introducing non-deterministic hallucinations.
+Action results use the envelope:
 
----
+~~~json
+{ "success": true, "message": "description", "data": {} }
+~~~
 
-## 2. Rovo Agent Skills Catalog (`manifest.yml` $\rightarrow$ `rovo:agent` & `rovo:action`)
+Function wrappers receive manifest inputs and pass them to shared handlers. Network permissions and actual Jira/Rovo behavior still need site validation.
 
-### Skill 1: `evaluate-issue-blast-radius`
-* **Module Type:** `rovo:action` (`actionVerb: GET`)
-* **When Invoked:** Automatically when `@ArthaKavacham` is assigned to a Jira issue, mentioned in a comment, or queried in Rovo Chat.
-* **Execution Logic:**
-  1. Fetches cached cloud provider telemetry ($U_i(t), Q_i, \tau_i, \lambda_i$) for **Vercel**, **Supabase**, **Turso**, and **Cloudflare** from Forge KVS & Teamwork Graph.
-  2. Extracts projected delta $\Delta \hat{U}_i$ and checks linked Confluence Architecture Decision Records (ADRs) for compliance indicator $\mathbb{I}_{\text{comp}} \in \{0, 1\}$.
-  3. Runs `evaluateQuotaGate()` from `src/math/quotaEngine.ts` to calculate:
-     $$\mathcal{B} = \max_{i \in \{1 \dots N\}} \left( \frac{U_i(t) + \Delta \hat{U}_i \cdot \lambda_i}{Q_i \cdot \tau_i} \right), \quad \mathcal{C} = \mathbb{I}_{\text{comp}} \cdot \max\left(0, 1 - \mathcal{B}\right)$$
-* **Input Parameters (`inputs`):**
-  ```json
-  {
-    "issueKey": {
-      "type": "string",
-      "required": true,
-      "description": "The Jira Issue Key (e.g., PROJ-42) to evaluate against cloud quotas and ADR rules."
-    },
-    "projectedRowReadsDelta": {
-      "type": "number",
-      "required": false,
-      "description": "Optional explicit override for projected monthly database row reads delta."
-    }
+## evaluate-issue-blast-radius
+
+- Manifest verb: GET.
+- Inputs: required issueKey string; optional projectedRowReadsDelta number.
+- Reads a validated cached snapshot. An explicit row-read override affects this analysis only, never authoritative stored evidence.
+- Runs evaluateQuotaGate with cached compliance.
+- data includes issueKey, allowed, blastRadiusScore, confidenceIndex, compliancePassed, breachingDimensions and verdictSummary.
+- C is a deterministic headroom index, not a probability.
+
+## apply-quota-remediation
+
+- Manifest verb: UPDATE.
+- Inputs: required issueKey and remediationStrategy strings.
+- Supported codes: edge-cache-cloudflare, batch-libsql-turso, pool-supabase.
+- No infrastructure deployment occurs. A strategy name is not proof that caching, batching or pooling has been implemented.
+- Measured path refreshes context and requires newer staged observations with nonempty evidence reference and matching strategy. It then computes the decision.
+- ALLOW requests Quota-Remediated/FinOps-Approved labels; BLOCK requests Quota-Blocked/FinOps-Review-Required. Jira adapter preserves unrelated labels and removes opposite statuses. Comments include verdict, breach/evidence details and optional owner mention.
+- Measured Jira calls use the invoking user, not unconditional asApp writes. KVS/Jira updates are not transactional; reconcile partial failures before retry.
+- Demo path reduces selected fixture deltas by 80%, once, and performs no Jira labels/comments or actual optimization. In this code, pool-supabase selects Supabase fixture deltas; the other two codes select Turso fixture deltas. Do not claim it models Cloudflare cache deployment.
+- data includes issueKey, strategyApplied, labelsApplied, decision, newBlastRadius and confidenceIndex. labelsApplied is empty for demos.
+
+## create-optimization-subtask
+
+- Manifest verb: CREATE (not WRITE).
+- Inputs: required parentIssueKey and summary strings.
+- Fetches parent/project metadata, discovers an available subtask issue type, creates a real Jira issue and returns its actual key. Never invent a key such as PROJ-42-FINOPS-1.
+- data includes subtaskKey, parentKey and summary.
+- This is a separate action; remediation does not automatically create a subtask. Check uncertain network failures before retrying to avoid duplicates.
+
+## JSON-RPC quota tools
+
+Implemented in [mcpServer.ts](src/mcp/mcpServer.ts). Tools are accessed using tools/list and tools/call with JSON-RPC 2.0. Results wrap JSON in a text content block; do not describe the JSON-RPC envelope as a bare evaluation object. Endpoint availability does not prove compatibility with every MCP client.
+
+| Tool | Arguments | Behavior |
+| --- | --- | --- |
+| verify_quota_guardrail | Required issueKey; optional projectedRowReadsDelta | Read-only engine evaluation with full precision and decision |
+| get_live_cloud_quotas | Required issueKey | Returns validated cached snapshot, source and timestamp; does not call provider APIs |
+
+Example body:
+
+~~~json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "verify_quota_guardrail",
+    "arguments": { "issueKey": "PROJ-42", "projectedRowReadsDelta": 266818182 }
   }
-  ```
-* **Deterministic Output Payload:**
-  ```json
-  {
-    "issueKey": "PROJ-42",
-    "allowed": false,
-    "blastRadiusScore": 1.11,
-    "confidenceIndex": 0.0,
-    "compliancePassed": true,
-    "breachingDimensions": [
-      "Turso row_reads_monthly (B=1.11, Projected=943,500,000 / SafeMax=850,000,000)"
-    ],
-    "verdictSummary": "BLOCKED: Projected Turso row reads exceed the 85% safety ceiling."
-  }
-  ```
+}
+~~~
 
----
+The row-read amount is a synthetic example, not an estimate for a real release. The scenario selector is a portal feature, not the get_live_cloud_quotas tool argument.
 
-### Skill 2: `apply-quota-remediation`
-* **Module Type:** `rovo:action` (`actionVerb: UPDATE`)
-* **When Invoked:** When $\mathcal{B} > 1.0$ or $\mathbb{I}_{\text{comp}} = 0$ and the user (or workflow automation) instructs `@ArthaKavacham` to enforce remediation on the ticket.
-* **Execution Logic:**
-  1. Applies the `"Quota-Blocked"` and `"FinOps-Review-Required"` labels to the Jira issue via `api.asApp().requestJira()`.
-  2. Queries the **Atlassian Teamwork Graph** Collaborators edge to identify the owning FinOps/Architecture lead and assigns or mentions them.
-  3. Posts a formatted Jira comment containing the mathematical breakdown table and concrete refactoring instructions (e.g., edge caching, Turso batch transactions, Supabase connection pooling).
-* **Input Parameters (`inputs`):**
-  ```json
-  {
-    "issueKey": {
-      "type": "string",
-      "required": true,
-      "description": "Target Jira Issue Key to label and remediate."
-    },
-    "remediationStrategy": {
-      "type": "string",
-      "required": true,
-      "description": "Concrete architectural fix (e.g., 'edge-cache-cloudflare
+## Endpoints and authentication
+
+- Local POST http://127.0.0.1:3000/api/mcp uses the selected portal demo store. Browser mutations require JSON and reject cross-site origins.
+- Forge webtrigger key arthakavacham-mcp-endpoint requires ARTHAKAVACHAM_MCP_TOKEN and Authorization: Bearer <token>. Missing/mismatched secrets are rejected.
+- The configured Forge webtrigger URL is installation-specific. Do not construct an extra path or put tokens in URLs without validating the endpoint/client.
+- Vercel api/mcp.js wraps shared RPC code but cannot access Forge installation KVS outside Forge.
+- No automatic Git pre-commit hook is installed; IDE verification is an intended workflow requiring client configuration and explicit invocation.
+
+## Graph and escalation
+
+Use the configured FinOps account or assignee fallback; query actual team memberships when authorized. Membership does not identify a squad lead. mapContextGraph creates local quota/ADR/owner relationships only. Do not claim a custom graph connector or automatic escalation comment outside the implemented/user-authorized action path.
